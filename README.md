@@ -16,45 +16,89 @@
 ## 项目结构
 
 ```
-backend/
-├── app/
+VideoCreator/
+├── app/                             # 应用代码
 │   ├── main.py                      # FastAPI 应用入口
 │   ├── config.py                    # 配置管理
-│   ├── models/
+│   ├── models/                      # 数据模型
 │   │   ├── request.py              # 请求模型
 │   │   └── response.py             # 响应模型
-│   ├── api/
+│   ├── api/                         # API 端点
 │   │   └── endpoints/
 │   │       ├── video_generation.py # 视频生成端点
-│   │       └── task_query.py       # 任务查询端点
-│   ├── services/
+│   │       ├── task_query.py       # 任务查询端点
+│   │       └── ui.py               # 测试 UI 端点
+│   ├── services/                    # 业务服务
 │   │   ├── oss_service.py          # OSS 上传服务
 │   │   ├── dashscope_service.py    # DashScope API 服务
 │   │   └── video_service.py        # 业务逻辑服务
-│   └── utils/
+│   └── utils/                       # 工具类
 │       ├── exceptions.py           # 自定义异常
 │       └── validators.py           # 文件验证器
-├── .env.example                     # 环境变量模板
-├── requirements.txt                 # 依赖包
+├── docs/                            # 文档目录
+│   ├── deployment.md               # 部署指南
+│   └── frontend-integration.md     # 前端集成指南
+├── config.yaml                      # 配置文件（含密钥，不提交到Git）
+├── config.yaml.example              # 配置模板
+├── requirements.txt                 # Python 依赖
+├── Dockerfile                       # Docker 镜像定义
+├── docker-compose.yml               # Docker Compose 配置
+├── .gitignore                       # Git 忽略规则
+├── .dockerignore                    # Docker 忽略规则
 └── README.md                        # 本文档
 ```
 
 ## 快速开始
 
-### 1. 环境要求
+### 方式一：Docker 部署（推荐）
 
-- Python 3.9+
+#### 1. 准备配置文件
+
+复制 `config.yaml.example` 为 `config.yaml` 并填入实际配置：
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+编辑 `config.yaml`，填入你的阿里云密钥（参考下方配置说明）。
+
+#### 2. 构建并启动服务
+
+```bash
+docker compose up -d --build
+```
+
+#### 3. 查看服务状态
+
+```bash
+# 查看日志
+docker compose logs -f video-creator
+
+# 查看容器状态
+docker ps
+```
+
+#### 4. 访问服务
+
+- Swagger 文档: http://localhost:9992/docs
+- 测试 UI: http://localhost:9992/ui
+- 健康检查: http://localhost:9992/health
+
+### 方式二：本地开发
+
+#### 1. 环境要求
+
+- Python 3.11+
 - 阿里云 OSS 账号
 - 阿里云 DashScope API Key
 
-### 2. 安装依赖
+#### 2. 安装依赖
 
 ```bash
-cd backend
 pip install -r requirements.txt
 ```
 
-### 3. 配置应用
+#### 3. 配置应用
 
 复制 `config.yaml.example` 为 `config.yaml` 并填入实际配置：
 
@@ -87,28 +131,29 @@ oss:
 
 # 应用配置
 app:
-  port: 8000
+  port: 9992
   host: 0.0.0.0
   debug: true
   log_level: INFO
 ```
 
-### 4. 运行服务
+#### 4. 运行服务
 
 ```bash
 # 开发模式（自动重载）
 python -m app.main
 
 # 或使用 uvicorn 直接运行
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 9992
 ```
 
-### 5. 访问文档
+#### 5. 访问文档
 
-服务启动后，访问以下地址查看 API 文档：
+服务启动后，访问以下地址：
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+- Swagger UI: http://localhost:9992/docs
+- ReDoc: http://localhost:9992/redoc
+- 测试 UI: http://localhost:9992/ui
 
 ## API 接口
 
@@ -233,171 +278,6 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 | `CANCELED` | 已取消 | - |
 | `UNKNOWN` | 不存在/超时 | 任务已过期 |
 
-## 使用流程
-
-```mermaid
-sequenceDiagram
-    participant Frontend as 前端
-    participant Backend as 后端服务
-    participant OSS as 阿里云 OSS
-    participant DashScope as DashScope API
-
-    Frontend->>Backend: 1. 上传文件 + 参数
-    Backend->>Backend: 2. 验证文件
-    Backend->>OSS: 3. 上传到 OSS
-    OSS-->>Backend: 4. 返回公网 URL
-    Backend->>DashScope: 5. 调用视频生成 API
-    DashScope-->>Backend: 6. 返回 task_id
-    Backend-->>Frontend: 7. 返回 task_id
-
-    loop 轮询（建议15秒间隔）
-        Frontend->>Backend: 8. 查询任务状态
-        Backend->>DashScope: 9. 查询任务
-        DashScope-->>Backend: 10. 返回状态
-        Backend-->>Frontend: 11. 返回状态
-    end
-
-    Note over Backend,DashScope: 任务成功后
-    Backend->>OSS: 12. 下载视频
-    Backend->>OSS: 13. 转存到自有 OSS
-    OSS-->>Backend: 14. 返回永久 URL
-    Backend-->>Frontend: 15. 返回永久 URL
-```
-
-## 前端调用示例
-
-### JavaScript (Fetch API)
-
-```javascript
-// 1. 创建图生视频任务
-async function createI2VVideo(imageFile, audioFile = null) {
-  const formData = new FormData();
-  formData.append('image', imageFile);
-
-  // 可选参数
-  if (audioFile) {
-    formData.append('audio', audioFile);
-  }
-  formData.append('prompt', '一只小猫在草地上奔跑');
-  formData.append('model', 'wan2.6-i2v');
-  formData.append('resolution', '1080P');
-  formData.append('duration', 10);
-  formData.append('shot_type', 'multi');  // 多镜头叙事
-  formData.append('audio_enable', true);  // 自动配音（默认为true）
-  formData.append('prompt_extend', true); // 智能改写prompt（默认为true）
-
-  const response = await fetch('http://localhost:8000/api/v1/video/i2v', {
-    method: 'POST',
-    body: formData
-  });
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.message);
-  }
-  return result.data.task_id;
-}
-
-// 2. 创建文生视频任务
-async function createT2VVideo(audioFile = null) {
-  const formData = new FormData();
-
-  if (audioFile) {
-    formData.append('audio', audioFile);
-  }
-  formData.append('prompt', '一只小猫在月光下的草地上奔跑，背景是星空');
-  formData.append('model', 'wan2.6-t2v');
-  formData.append('size', '1280*720');
-  formData.append('duration', 10);
-  formData.append('shot_type', 'multi');
-  formData.append('audio_enable', true);
-
-  const response = await fetch('http://localhost:8000/api/v1/video/t2v', {
-    method: 'POST',
-    body: formData
-  });
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.message);
-  }
-  return result.data.task_id;
-}
-
-// 3. 创建参考生视频任务
-async function createR2VVideo(videoFiles) {
-  if (videoFiles.length > 3) {
-    throw new Error('最多支持3个参考视频');
-  }
-
-  const formData = new FormData();
-
-  // 添加参考视频（顺序对应character1、character2...）
-  videoFiles.forEach(file => {
-    formData.append('reference_videos', file);
-  });
-
-  // 使用character1、character2引用参考角色
-  formData.append('prompt', 'character1对character2说: 你好！character2回答: 很高兴见到你！');
-  formData.append('model', 'wan2.6-r2v');
-  formData.append('size', '1280*720');
-  formData.append('duration', 10);
-  formData.append('shot_type', 'multi');
-  formData.append('audio_enable', true);  // 提取参考视频音色
-
-  const response = await fetch('http://localhost:8000/api/v1/video/r2v', {
-    method: 'POST',
-    body: formData
-  });
-
-  const result = await response.json();
-  if (!result.success) {
-    throw new Error(result.message);
-  }
-  return result.data.task_id;
-}
-
-// 4. 轮询查询任务状态
-async function pollTaskStatus(taskId) {
-  const response = await fetch(`http://localhost:8000/api/v1/task/${taskId}`);
-  const result = await response.json();
-
-  if (!result.success) {
-    throw new Error(result.message);
-  }
-
-  const { task_status, oss_video_url, error_message } = result.data;
-
-  if (task_status === 'SUCCEEDED') {
-    console.log('视频生成成功:', oss_video_url);
-    return result.data;
-  } else if (task_status === 'FAILED') {
-    console.error('视频生成失败:', error_message);
-    throw new Error(error_message);
-  } else {
-    // 继续轮询（PENDING 或 RUNNING）
-    console.log(`任务状态: ${task_status}，15秒后重试...`);
-    await new Promise(resolve => setTimeout(resolve, 15000)); // 等待15秒
-    return pollTaskStatus(taskId);
-  }
-}
-
-// 使用示例
-async function generateVideo() {
-  try {
-    // 选择要使用的接口
-    const taskId = await createI2VVideo(imageFile);
-    // const taskId = await createT2VVideo();
-    // const taskId = await createR2VVideo([video1File, video2File]);
-
-    console.log('任务已创建:', taskId);
-    const result = await pollTaskStatus(taskId);
-    console.log('视频生成完成:', result);
-  } catch (error) {
-    console.error('错误:', error.message);
-  }
-}
-```
 
 ## 注意事项
 
@@ -449,6 +329,43 @@ async function generateVideo() {
     - `prompt_extend`: `true`（智能改写）
     - `watermark`: `false`（不添加水印）
 
+## Docker 管理命令
+
+```bash
+# 启动服务
+docker compose up -d
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 查看日志
+docker compose logs -f video-creator
+
+# 重新构建镜像
+docker compose build --no-cache
+
+# 进入容器
+docker compose exec video-creator bash
+```
+
+## 技术栈
+
+- **框架**: FastAPI 0.109+ - 现代高性能 Web 框架
+- **服务器**: Uvicorn - ASGI 服务器
+- **数据验证**: Pydantic 2.5+ - 类型安全的数据验证
+- **HTTP 客户端**: httpx - 异步 HTTP 客户端
+- **云服务**: 阿里云 OSS + DashScope 通义万相
+- **图像处理**: Pillow - 图片验证和处理
+- **容器化**: Docker + Docker Compose
+
+## 更多文档
+
+- [Docker 部署指南](docs/deployment.md) - 详细的 Docker 部署步骤
+- [前端集成指南](docs/frontend-integration.md) - 前端开发者快速集成参考
+
 ## 故障排查
 
 ### 1. OSS 上传失败
@@ -477,25 +394,3 @@ async function generateVideo() {
 - 确保图片分辨率在 360-2000 像素之间
 - 确保文件格式符合要求
 - 检查文件大小是否超限
-
-## 开发建议
-
-1. **生产环境部署**
-   - 设置 `DEBUG=False`
-   - 配置具体的 CORS 允许域名
-   - 使用 Gunicorn + Uvicorn 部署
-   - 配置 HTTPS
-
-2. **性能优化**
-   - 使用连接池
-   - 启用 HTTP/2
-   - 配置 CDN 加速 OSS 访问
-
-3. **监控与日志**
-   - 配置日志收集
-   - 监控 API 调用频率
-   - 设置告警规则
-
-## License
-
-MIT

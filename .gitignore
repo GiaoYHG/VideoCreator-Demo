@@ -35,6 +35,9 @@ build/
 dist/
 *.egg-info/
 
+# Documentation
+docs/
+
 # OS
 .DS_Store
 
