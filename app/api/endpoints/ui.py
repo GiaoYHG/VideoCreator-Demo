@@ -73,6 +73,29 @@ _HTML = """<!doctype html>
       .card small { color: var(--muted); }
       .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
       label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 6px; }
+      label.fileBtn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.05);
+        color: var(--text);
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+        margin: 0;
+      }
+      label.fileBtn:hover {
+        background: rgba(255,255,255,.08);
+        border-color: var(--accent);
+      }
+      label.fileBtn::before {
+        content: "📁";
+        font-size: 16px;
+      }
       input, select, textarea, button {
         width: 100%;
         padding: 10px 10px;
@@ -81,6 +104,10 @@ _HTML = """<!doctype html>
         background: rgba(255,255,255,.03);
         color: var(--text);
         outline: none;
+      }
+      /* 隐藏原生文件选择按钮 */
+      input[type="file"] {
+        display: none;
       }
       textarea { min-height: 92px; resize: vertical; }
       input[type="checkbox"] { width: auto; transform: translateY(1px); }
@@ -242,6 +269,7 @@ _HTML = """<!doctype html>
           <input id="t2v_negative_prompt" value="低质量，模糊，失焦，低分辨率，噪点，压缩伪影，闪烁，抖动，画面不稳定，运动模糊，畸形，错误结构，面部变形，多余或缺失肢体，手部错误，动作不自然，僵硬动画，过曝，欠曝，光照不一致，透视错误，物体扭曲，字幕" placeholder="不希望出现的内容..." />
           <label>Audio（可选，wav/mp3）</label>
           <input id="t2v_audio" type="file" accept="audio/*" />
+          <label for="t2v_audio" class="fileBtn">选择音频文件</label>
           <div id="t2v_audio_list" class="fileList"></div>
           <div class="checks">
             <label><input id="t2v_prompt_extend" type="checkbox" checked /> prompt_extend</label>
@@ -260,6 +288,7 @@ _HTML = """<!doctype html>
           <small>POST <span class="mono">/api/v1/video/i2v</span></small>
           <label>Image（必填）</label>
           <input id="i2v_image" type="file" accept="image/*" />
+          <label for="i2v_image" class="fileBtn">选择图片文件</label>
           <div id="i2v_image_list" class="fileList"></div>
           <label>Prompt（可选）</label>
           <textarea id="i2v_prompt" placeholder="如：保持主体一致，生成自然动作..."></textarea>
@@ -297,6 +326,7 @@ _HTML = """<!doctype html>
           <input id="i2v_negative_prompt" value="低质量，模糊，失焦，低分辨率，噪点，压缩伪影，闪烁，抖动，画面不稳定，运动模糊，畸形，错误结构，面部变形，多余或缺失肢体，手部错误，动作不自然，僵硬动画，过曝，欠曝，光照不一致，透视错误，物体扭曲，字幕" placeholder="不希望出现的内容..." />
           <label>Audio（可选，wav/mp3）</label>
           <input id="i2v_audio" type="file" accept="audio/*" />
+          <label for="i2v_audio" class="fileBtn">选择音频文件</label>
           <div id="i2v_audio_list" class="fileList"></div>
           <div class="checks">
             <label><input id="i2v_prompt_extend" type="checkbox" checked /> prompt_extend</label>
@@ -315,6 +345,7 @@ _HTML = """<!doctype html>
           <small>POST <span class="mono">/api/v1/video/r2v</span></small>
           <label>Reference Videos（必填，最多3个）</label>
           <input id="r2v_videos" type="file" accept="video/*" multiple />
+          <label for="r2v_videos" class="fileBtn">选择参考视频（最多3个）</label>
           <div id="r2v_video_list" class="fileList"></div>
           <label>Prompt（必填）</label>
           <textarea id="r2v_prompt" placeholder="传入多个视频时，第 1 个视频对应 character1，第 2 个对应 character2，以此类推。每个参考视频仅包含一个角色（如 character1 为小女孩，character2 为闹钟）。"></textarea>
