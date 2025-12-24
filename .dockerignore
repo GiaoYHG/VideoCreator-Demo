@@ -1,0 +1,12 @@
+.git
+.idea
+.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+
+# 不要把本地敏感配置打进镜像（容器运行时通过 volume 挂载）
+config.yaml
+

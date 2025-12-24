@@ -1,0 +1,13 @@
+services:
+  video-creator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-creator
+    restart: unless-stopped
+    ports:
+      - "9992:9992"
+    # 在服务器上创建并编辑 ./config.yaml，然后以只读方式挂载进容器
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+
