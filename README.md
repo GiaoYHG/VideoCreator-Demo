@@ -57,7 +57,7 @@ VideoCreator/
 复制 `config.yaml.example` 为 `config.yaml` 并填入实际配置：
 
 ```bash
-cp config.yaml.example config.yaml
+cp config.example.yaml config.yaml
 ```
 
 编辑 `config.yaml`，填入你的阿里云密钥（参考下方配置说明）。
@@ -103,7 +103,7 @@ pip install -r requirements.txt
 复制 `config.yaml.example` 为 `config.yaml` 并填入实际配置：
 
 ```bash
-cp config.yaml.example config.yaml
+cp config.example.yaml config.yaml
 ```
 
 编辑 `config.yaml` 文件，填入以下配置：

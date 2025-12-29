@@ -37,20 +37,21 @@ class Settings:
         self.dashscope_api_key: str = dashscope.get("api_key", "")
         self.dashscope_region: Literal["beijing", "singapore"] = dashscope.get("region", "singapore")
 
-        # OSS 配置
-        oss = config_data.get("oss", {})
-        self.oss_access_key_id: str = oss.get("access_key_id", "")
-        self.oss_access_key_secret: str = oss.get("access_key_secret", "")
-        self.oss_bucket_name: str = oss.get("bucket_name", "")
-        self.oss_endpoint: str = oss.get("endpoint", "oss-cn-shanghai.aliyuncs.com")
+        # AWS S3 配置
+        s3 = config_data.get("s3", {})
+        self.s3_access_key_id: str = s3.get("access_key_id", "")
+        self.s3_secret_access_key: str = s3.get("secret_access_key", "")
+        self.s3_bucket_name: str = s3.get("bucket_name", "")
+        self.s3_region: str = s3.get("region", "us-east-1")
+        self.s3_endpoint_url: str = s3.get("endpoint_url", "")  # 可选，用于自定义S3兼容服务
 
-        # OSS 路径配置
-        oss_paths = oss.get("paths", {})
-        self.oss_image_path: str = oss_paths.get("images", "video-creator/images/")
-        self.oss_audio_path: str = oss_paths.get("audios", "video-creator/audios/")
-        self.oss_reference_video_path: str = oss_paths.get("reference_videos", "video-creator/reference-videos/")
-        self.oss_output_video_path: str = oss_paths.get("output_videos", "video-creator/output-videos/")
-        self.oss_url_expiration: int = oss.get("url_expiration", 86400)
+        # S3 路径配置
+        s3_paths = s3.get("paths", {})
+        self.s3_image_path: str = s3_paths.get("images", "video-creator/images/")
+        self.s3_audio_path: str = s3_paths.get("audios", "video-creator/audios/")
+        self.s3_reference_video_path: str = s3_paths.get("reference_videos", "video-creator/reference-videos/")
+        self.s3_output_video_path: str = s3_paths.get("output_videos", "video-creator/output-videos/")
+        self.s3_url_expiration: int = s3.get("url_expiration", 86400)
 
         # 应用配置
         app = config_data.get("app", {})
@@ -66,9 +67,9 @@ class Settings:
         """验证必需的配置项"""
         required_fields = {
             "dashscope_api_key": self.dashscope_api_key,
-            "oss_access_key_id": self.oss_access_key_id,
-            "oss_access_key_secret": self.oss_access_key_secret,
-            "oss_bucket_name": self.oss_bucket_name,
+            "s3_access_key_id": self.s3_access_key_id,
+            "s3_secret_access_key": self.s3_secret_access_key,
+            "s3_bucket_name": self.s3_bucket_name,
         }
 
         missing = [name for name, value in required_fields.items() if not value]

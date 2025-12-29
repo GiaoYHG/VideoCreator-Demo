@@ -11,7 +11,7 @@ from app.models.response import (
     TaskUsage
 )
 from app.services.dashscope_service import dashscope_service
-from app.services.oss_service import oss_service
+from app.services.s3_service import oss_service
 
 
 class VideoService:

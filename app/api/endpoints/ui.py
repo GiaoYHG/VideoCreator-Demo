@@ -412,6 +412,8 @@ _HTML = """<!doctype html>
                 <button id="query_submit" class="secondary" style="width:auto;">查询</button>
                 <button id="poll_stop" class="danger" style="width:auto; display:none;">停止轮询</button>
                 <span id="badge" class="badge">IDLE</span>
+                <span id="cost_info" class="badge" style="display:none;"></span>
+                <span id="time_info" class="badge" style="display:none;"></span>
               </div>
             </div>
             <div class="muted" style="font-size:12px;">轮询间隔：15s（SUCCEEDED/FAILED/UNKNOWN 自动停止）</div>
@@ -445,6 +447,92 @@ _HTML = """<!doctype html>
         if (status === "SUCCEEDED") badge.classList.add("ok");
         else if (status === "FAILED" || status === "CANCELED") badge.classList.add("bad");
         else if (status === "PENDING" || status === "RUNNING") badge.classList.add("warn");
+      }
+
+      // 计算时间差（秒）
+      function calculateDuration(startTime, endTime) {
+        if (!startTime || !endTime) return null;
+
+        try {
+          const start = new Date(startTime);
+          const end = new Date(endTime);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            return null;
+          }
+
+          // 返回秒数
+          return Math.round((end - start) / 1000);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 格式化时间显示（秒转为易读格式）
+      function formatDuration(seconds) {
+        if (!seconds && seconds !== 0) return "";
+
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+
+        const parts = [];
+        if (hours > 0) parts.push(`${hours}h`);
+        if (minutes > 0) parts.push(`${minutes}m`);
+        if (secs > 0 || parts.length === 0) parts.push(`${secs}s`);
+
+        return parts.join(" ");
+      }
+
+      // 更新费用和时间显示
+      function updateCostAndTimeInfo(data) {
+        const costInfo = $("cost_info");
+        const timeInfo = $("time_info");
+
+        // 重置显示
+        costInfo.style.display = "none";
+        timeInfo.style.display = "none";
+        costInfo.textContent = "";
+        timeInfo.textContent = "";
+
+        if (!data) return;
+
+        // 计算并显示费用（使用usage字段）
+        const sr = data.usage?.SR;  // 分辨率：720 或 1080
+        const duration = data.usage?.output_video_duration;  // 视频时长（秒）
+
+        if (sr && duration) {
+          let pricePerSecond;
+          if (sr >= 1080) {
+            // 1080P: $0.15/秒
+            pricePerSecond = 0.15;
+          } else if (sr >= 720) {
+            // 720P: $0.1/秒
+            pricePerSecond = 0.1;
+          } else {
+            // 480P及以下不计费
+            pricePerSecond = null;
+          }
+
+          if (pricePerSecond !== null) {
+            const cost = pricePerSecond * duration;
+            costInfo.textContent = `💰 $${cost.toFixed(2)}`;
+            costInfo.style.display = "";
+            costInfo.classList.add("ok");
+          }
+        }
+
+        // 计算并显示时间
+        const submitTime = data.submit_time;
+        const endTime = data.end_time;
+        if (submitTime && endTime) {
+          const durationSeconds = calculateDuration(submitTime, endTime);
+          if (durationSeconds !== null) {
+            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+            timeInfo.style.display = "";
+            timeInfo.classList.add("ok");
+          }
+        }
       }
 
       function setPreviewUrl(url) {
@@ -543,12 +631,14 @@ _HTML = """<!doctype html>
             const data = await queryTask(taskId);
             const status = data?.task_status || "UNKNOWN";
             setBadge(status);
+            updateCostAndTimeInfo(data);
             if (["SUCCEEDED", "FAILED", "CANCELED", "UNKNOWN"].includes(status)) {
               stopPolling();
               return;
             }
           } catch (e) {
             setBadge("FAILED");
+            updateCostAndTimeInfo(null);
             stopPolling();
           }
           pollTimer = setTimeout(tick, POLL_INTERVAL_MS);
@@ -572,6 +662,7 @@ _HTML = """<!doctype html>
       async function createTask(path, formData) {
         stopPolling();
         setBadge("SUBMITTING");
+        updateCostAndTimeInfo(null); // 清空之前的信息
         setPreviewUrl("");
         goToTaskSection();
 
@@ -580,11 +671,13 @@ _HTML = """<!doctype html>
         if (!res.ok) {
           const msg = extractErrorMessage(payload);
           setBadge("FAILED");
+          updateCostAndTimeInfo(null);
           throw new Error(msg);
         }
         if (!payload?.success) {
           const msg = payload?.message || "创建任务失败";
           setBadge("FAILED");
+          updateCostAndTimeInfo(null);
           throw new Error(msg);
         }
         const taskId = payload?.data?.task_id;
@@ -731,15 +824,18 @@ _HTML = """<!doctype html>
         const taskId = $("task_id").value.trim();
         if (!taskId) return alert("请输入 task_id");
         setBadge("QUERYING");
+        updateCostAndTimeInfo(null); // 清空之前的信息
         try {
           const data = await queryTask(taskId);
           const status = data?.task_status || "UNKNOWN";
           setBadge(status);
+          updateCostAndTimeInfo(data);
           if (!["SUCCEEDED", "FAILED", "CANCELED", "UNKNOWN"].includes(status)) {
             schedulePoll(taskId);
           }
         } catch (e) {
           setBadge("FAILED");
+          updateCostAndTimeInfo(null);
           alert(e.message);
         }
       });

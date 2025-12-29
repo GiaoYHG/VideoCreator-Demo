@@ -8,7 +8,7 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
 
 from app.models.request import I2VRequest, T2VRequest, R2VRequest
 from app.models.response import BaseResponse
-from app.services.oss_service import oss_service
+from app.services.s3_service import oss_service
 from app.services.video_service import video_service
 from app.utils.exceptions import (
     FileValidationException,
