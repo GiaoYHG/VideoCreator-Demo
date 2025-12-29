@@ -1,5 +1,6 @@
 .git
 .idea
+.vscode
 .venv
 **/__pycache__
 **/*.pyc
@@ -9,4 +10,22 @@
 
 # 不要把本地敏感配置打进镜像（容器运行时通过 volume 挂载）
 config.yaml
+
+# 不要把数据库文件打进镜像（容器运行时通过 volume 挂载）
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# 旧的服务文件（已迁移到s3_service.py）
+app/services/oss_service.py
+
+# 文档
+docs/
+README.md
+
+# 测试文件
+tests/
+*.test.py
 

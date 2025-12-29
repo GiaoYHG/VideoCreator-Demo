@@ -1,6 +1,6 @@
 """
 视频业务逻辑服务
-整合OSS服务和DashScope服务，提供完整的业务流程
+整合S3服务和DashScope服务，提供完整的业务流程
 """
 from typing import List, Optional
 
@@ -12,6 +12,7 @@ from app.models.response import (
 )
 from app.services.dashscope_service import dashscope_service
 from app.services.s3_service import oss_service
+from app.db.crud import create_video_task
 
 
 class VideoService:
@@ -28,8 +29,8 @@ class VideoService:
 
         Args:
             request: 图生视频请求参数
-            img_url: 图片URL（已上传到OSS）
-            audio_url: 音频URL（可选，已上传到OSS）
+            img_url: 图片URL（已上传到S3）
+            audio_url: 音频URL（可选，已上传到S3）
 
         Returns:
             VideoGenerationResponse: 视频生成响应
@@ -52,10 +53,28 @@ class VideoService:
 
         # 解析响应
         output = response.get("output", {})
+        task_id = output.get("task_id")
+        task_status = output.get("task_status", "UNKNOWN")
+        request_id = response.get("request_id", "")
+
+        # 记录到数据库
+        try:
+            create_video_task(
+                task_id=task_id,
+                task_type="I2V",
+                request_id=request_id,
+                request_data=request.model_dump(),
+                img_url=img_url,
+                audio_url=audio_url
+            )
+        except Exception as e:
+            # 数据库记录失败不影响主流程
+            print(f"Warning: Failed to record task to database: {e}")
+
         return VideoGenerationResponse(
-            task_id=output.get("task_id"),
-            task_status=output.get("task_status", "UNKNOWN"),
-            request_id=response.get("request_id", "")
+            task_id=task_id,
+            task_status=task_status,
+            request_id=request_id
         )
 
     async def create_t2v_video(
@@ -68,7 +87,7 @@ class VideoService:
 
         Args:
             request: 文生视频请求参数
-            audio_url: 音频URL（可选，已上传到OSS）
+            audio_url: 音频URL（可选，已上传到S3）
 
         Returns:
             VideoGenerationResponse: 视频生成响应
@@ -90,10 +109,27 @@ class VideoService:
 
         # 解析响应
         output = response.get("output", {})
+        task_id = output.get("task_id")
+        task_status = output.get("task_status", "UNKNOWN")
+        request_id = response.get("request_id", "")
+
+        # 记录到数据库
+        try:
+            create_video_task(
+                task_id=task_id,
+                task_type="T2V",
+                request_id=request_id,
+                request_data=request.model_dump(),
+                audio_url=audio_url
+            )
+        except Exception as e:
+            # 数据库记录失败不影响主流程
+            print(f"Warning: Failed to record task to database: {e}")
+
         return VideoGenerationResponse(
-            task_id=output.get("task_id"),
-            task_status=output.get("task_status", "UNKNOWN"),
-            request_id=response.get("request_id", "")
+            task_id=task_id,
+            task_status=task_status,
+            request_id=request_id
         )
 
     async def create_r2v_video(
@@ -106,7 +142,7 @@ class VideoService:
 
         Args:
             request: 参考生视频请求参数
-            reference_video_urls: 参考视频URL列表（已上传到OSS）
+            reference_video_urls: 参考视频URL列表（已上传到S3）
 
         Returns:
             VideoGenerationResponse: 视频生成响应
@@ -127,10 +163,27 @@ class VideoService:
 
         # 解析响应
         output = response.get("output", {})
+        task_id = output.get("task_id")
+        task_status = output.get("task_status", "UNKNOWN")
+        request_id = response.get("request_id", "")
+
+        # 记录到数据库
+        try:
+            create_video_task(
+                task_id=task_id,
+                task_type="R2V",
+                request_id=request_id,
+                request_data=request.model_dump(),
+                reference_video_urls=reference_video_urls
+            )
+        except Exception as e:
+            # 数据库记录失败不影响主流程
+            print(f"Warning: Failed to record task to database: {e}")
+
         return VideoGenerationResponse(
-            task_id=output.get("task_id"),
-            task_status=output.get("task_status", "UNKNOWN"),
-            request_id=response.get("request_id", "")
+            task_id=task_id,
+            task_status=task_status,
+            request_id=request_id
         )
 
     async def query_task_status(self, task_id: str) -> TaskQueryResponse:
@@ -181,10 +234,10 @@ class VideoService:
                 size=usage_data.get("size") or usage_data.get("video_ratio")
             )
 
-        # 如果任务成功且有video_url，自动下载并转存到OSS
+        # 如果任务成功且有video_url，自动下载并转存到S3
         if task_status == "SUCCEEDED" and output.get("video_url"):
             try:
-                # 下载视频并上传到自有OSS
+                # 下载视频并上传到自有S3
                 _, oss_url = await oss_service.download_and_upload(
                     output["video_url"],
                     "output_video"

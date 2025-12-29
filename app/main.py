@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.api.endpoints import video_generation, task_query, ui
 from app.utils.exceptions import VideoCreatorException
+from app.db import init_db
 
 # 创建FastAPI应用实例
 app = FastAPI(
@@ -48,6 +49,13 @@ app.include_router(task_query.router)
 app.include_router(ui.router)
 
 
+# 启动事件：初始化数据库
+@app.on_event("startup")
+def startup_event():
+    """应用启动时初始化数据库"""
+    init_db()
+
+
 @app.get("/", tags=["健康检查"])
 async def root():
     """根路径，返回服务信息"""
@@ -65,7 +73,8 @@ async def health_check():
     return {
         "status": "healthy",
         "dashscope_region": settings.dashscope_region,
-        "oss_endpoint": settings.oss_endpoint
+        "s3_region": settings.s3_region,
+        "s3_bucket": settings.s3_bucket_name
     }
 
 

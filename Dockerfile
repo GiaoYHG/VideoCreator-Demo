@@ -19,8 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 拷贝应用代码（通过 .dockerignore 排除本地敏感配置）
 COPY app app
 
-# 可选：复制配置模板作为参考（实际配置通过 volume 挂载）
-COPY config.example.yaml .
+# 创建数据目录
+RUN mkdir -p /app/data
 
 # 创建非 root 用户运行应用
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

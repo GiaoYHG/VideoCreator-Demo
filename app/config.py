@@ -60,6 +60,12 @@ class Settings:
         self.debug: bool = app.get("debug", False)
         self.log_level: str = app.get("log_level", "INFO")
 
+        # 数据库配置
+        database = config_data.get("database", {})
+        database_path = database.get("path", "data/video_tasks.db")
+        # 转换为绝对路径
+        self.database_path: str = str((project_root / database_path).resolve())
+
         # 验证必需配置
         self._validate()
 

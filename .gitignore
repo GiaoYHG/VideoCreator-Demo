@@ -44,3 +44,9 @@ docs/
 # Temporary files
 *.tmp
 *.temp
+
+# Database
+/data/*.db
+/data/*.db-journal
+/data/*.db-wal
+/data/*.db-shm

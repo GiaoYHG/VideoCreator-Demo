@@ -15,7 +15,7 @@ class VideoCreatorException(Exception):
 
 
 class OSSUploadException(VideoCreatorException):
-    """OSS上传异常"""
+    """S3上传异常（为保持兼容性保留原类名）"""
     pass
 
 

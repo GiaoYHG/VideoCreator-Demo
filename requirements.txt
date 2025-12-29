@@ -20,3 +20,6 @@ Pillow>=10.2.0
 
 # 工具库
 python-dateutil>=2.8.2
+
+# 数据库
+sqlalchemy>=2.0.23
