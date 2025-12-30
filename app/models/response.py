@@ -50,7 +50,7 @@ class TaskQueryResponse(BaseModel):
     orig_prompt: Optional[str] = Field(None, description="原始prompt")
     actual_prompt: Optional[str] = Field(None, description="改写后的prompt")
     video_url: Optional[str] = Field(None, description="生成的视频URL（临时，24小时有效）")
-    oss_video_url: Optional[str] = Field(None, description="转存到S3的视频URL（签名URL，有效期取决于s3.url_expiration）")
+    s3_video_url: Optional[str] = Field(None, description="转存到S3的视频URL（签名URL，有效期取决于s3.url_expiration）")
     usage: Optional[TaskUsage] = Field(None, description="资源使用情况")
     error_code: Optional[str] = Field(None, description="错误代码")
     error_message: Optional[str] = Field(None, description="错误消息")

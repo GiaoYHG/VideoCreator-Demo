@@ -221,6 +221,73 @@ reference_videos: <files> # 参考视频（1-3个）
 ...
 ```
 
+### Seedance 1.5 pro（创建/查询）
+
+```http
+POST /api/v1/seedance/task
+Content-Type: multipart/form-data
+
+model: string              # 可选（默认 doubao-seedance-1-5-pro-251215）
+prompt: string             # 必填
+first_frame: <file>        # 可选（首帧图）
+last_frame: <file>         # 可选（尾帧图；有 last_frame 必须同时传 first_frame）
+generate_audio: true|false # 可选（默认 true）
+resolution: 480p|720p      # 可选（默认 720p）
+ratio: 16:9|9:16|...|adaptive # 可选
+duration: 4~12|-1          # 可选（-1 表示模型自行选择 4~12）
+seed: -1~2^32-1            # 可选（-1 表示随机）
+camera_fixed: true|false   # 可选（默认 false）
+watermark: true|false      # 可选（默认 false）
+```
+
+创建响应示例：
+
+```json
+{
+  "success": true,
+  "message": "Seedance 任务创建成功",
+  "data": {
+    "id": "cgt-2025******-****"
+  }
+}
+```
+
+```http
+GET /api/v1/seedance/task/{task_id}
+```
+
+查询响应示例（data 对齐 Ark 返回，并额外补充 s3_video_url）：
+
+```json
+{
+  "success": true,
+  "message": "任务状态: succeeded",
+  "data": {
+    "id": "cgt-2025******-****",
+    "model": "doubao-seedance-1-5-pro-251215",
+    "status": "succeeded",
+    "content": {
+      "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/xxx"
+    },
+    "seed": 10,
+    "resolution": "720p",
+    "ratio": "16:9",
+    "duration": 5,
+    "framespersecond": 24,
+    "service_tier": "default",
+    "execution_expires_after": 172800,
+    "generate_audio": true,
+    "usage": {
+      "completion_tokens": 108900,
+      "total_tokens": 108900
+    },
+    "created_at": 1743414619,
+    "updated_at": 1743414673,
+    "s3_video_url": "https://..."
+  }
+}
+```
+
 ### 查询任务状态
 
 ```http
@@ -237,7 +304,7 @@ GET /api/v1/task/{task_id}
     "task_id": "xxx",
     "task_status": "SUCCEEDED",
     "video_url": "https://...",
-    "oss_video_url": "https://...",
+    "s3_video_url": "https://...",
     "usage": {
       "SR": 720,
       "output_video_duration": 5

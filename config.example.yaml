@@ -14,6 +14,18 @@ dashscope:
 
 
 # ====================================
+# 字节跳动 Seedance API 配置（Ark）
+# ====================================
+seedance:
+  # API Key（可选：仅在使用 Seedance 接口时需要）
+  # 获取地址：https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey
+  api_key: your_seedance_api_key_here
+
+  # API Base URL（可选）
+  base_url: https://ark.cn-beijing.volces.com
+
+
+# ====================================
 # AWS S3 配置
 # ====================================
 s3:

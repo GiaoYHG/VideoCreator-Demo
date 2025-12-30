@@ -205,19 +205,62 @@ _HTML = """<!doctype html>
         overflow: auto;
         max-height: 320px;
       }
+
+      .tabs {
+        margin-top: 14px;
+        display: inline-flex;
+        gap: 6px;
+        padding: 6px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: rgba(255,255,255,.03);
+      }
+      .tab {
+        width: auto;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+      .tab.active {
+        color: var(--text);
+        background: linear-gradient(180deg, rgba(110,168,254,.25), rgba(110,168,254,.10));
+        border-color: rgba(110,168,254,.35);
+      }
+      .pages {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 14px;
+      }
+      .pages::-webkit-scrollbar { display: none; }
+      .pages { scrollbar-width: none; }
+      .page {
+        flex: 0 0 100%;
+        scroll-snap-align: start;
+      }
       @media (max-width: 980px) { .card { grid-column: span 12; } }
     </style>
   </head>
   <body>
     <header>
       <h1>VideoCreator UI</h1>
-      <p>
-        本页用于快速调用：T2V / I2V / R2V + 任务查询轮询。
-      </p>
+      <div class="tabs" role="tablist" aria-label="模型选择">
+        <button id="tab_wan" class="tab active" type="button">Wan2.6</button>
+        <button id="tab_seedance" class="tab" type="button">Seedance1.5pro</button>
+      </div>
     </header>
 
     <main>
-      <div class="grid">
+      <div id="mode_pages" class="pages" aria-label="模型页面">
+        <section id="page_wan" class="page" data-provider="wan">
+          <div class="grid">
         <section class="card">
           <h2>T2V 文生视频</h2>
           <small>POST <span class="mono">/api/v1/video/t2v</span></small>
@@ -402,11 +445,95 @@ _HTML = """<!doctype html>
             <button id="r2v_submit">创建任务</button>
           </div>
         </section>
+          </div>
+        </section>
 
+        <section id="page_seedance" class="page" data-provider="seedance">
+          <div class="grid">
+            <section class="card wide">
+              <h2>Seedance 1.5 pro</h2>
+              <small>POST <span class="mono">/api/v1/seedance/task</span></small>
+              <label>Prompt（必填）</label>
+              <textarea id="sd_prompt" placeholder="描述你想生成的视频..."></textarea>
+              <label>Model</label>
+              <input id="sd_model" value="doubao-seedance-1-5-pro-251215" />
+              <div class="row">
+                <div>
+                  <label>Resolution</label>
+                  <select id="sd_resolution">
+                    <option value="720p" selected>720p</option>
+                    <option value="480p">480p</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Ratio</label>
+                  <select id="sd_ratio">
+                    <option value="adaptive" selected>adaptive</option>
+                    <option value="16:9">16:9</option>
+                    <option value="9:16">9:16</option>
+                    <option value="4:3">4:3</option>
+                    <option value="3:4">3:4</option>
+                    <option value="1:1">1:1</option>
+                    <option value="21:9">21:9</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Duration</label>
+                  <select id="sd_duration">
+                    <option value="-1" selected>adaptive</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Seed（-1 或 0~4294967295）</label>
+                  <input id="sd_seed" type="number" min="-1" max="4294967295" placeholder="留空使用随机" />
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>First Frame（可选）</label>
+                  <input id="sd_first_frame" type="file" accept="image/*" />
+                  <label for="sd_first_frame" class="fileBtn">选择首帧图片</label>
+                  <div id="sd_first_frame_list" class="fileList"></div>
+                </div>
+                <div>
+                  <label>Last Frame（可选）</label>
+                  <input id="sd_last_frame" type="file" accept="image/*" />
+                  <label id="sd_last_frame_btn" for="sd_last_frame" class="fileBtn">选择尾帧图片</label>
+                  <div id="sd_last_frame_list" class="fileList"></div>
+                </div>
+              </div>
+              <div class="checks">
+                <label><input id="sd_generate_audio" type="checkbox" checked /> generate_audio</label>
+                <label><input id="sd_camera_fixed" type="checkbox" /> camera_fixed</label>
+                <label><input id="sd_watermark" type="checkbox" /> watermark</label>
+              </div>
+              <div class="actions">
+                <button id="sd_submit">创建任务</button>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+
+      <div class="grid" style="margin-top: 14px;">
         <section id="task_section" class="wide status">
           <div class="statusTop">
             <div>
-              <div class="muted" style="font-size:12px;">任务查询</div>
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div class="muted" style="font-size:12px;">任务查询</div>
+                <span id="provider_badge" class="badge">Wan2.6</span>
+              </div>
               <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;">
                 <input id="task_id" class="mono" placeholder="task_id" style="min-width: 380px; flex: 1;" />
                 <button id="query_submit" class="secondary" style="width:auto;">查询</button>
@@ -416,7 +543,7 @@ _HTML = """<!doctype html>
                 <span id="time_info" class="badge" style="display:none;"></span>
               </div>
             </div>
-            <div class="muted" style="font-size:12px;">轮询间隔：15s（SUCCEEDED/FAILED/UNKNOWN 自动停止）</div>
+            <div class="muted" style="font-size:12px;">轮询间隔：15s（SUCCEEDED/FAILED/CANCELED/UNKNOWN 自动停止）</div>
           </div>
 
           <div style="margin-top: 14px;">
@@ -430,14 +557,31 @@ _HTML = """<!doctype html>
     <script>
       const POLL_INTERVAL_MS = 15000;
       let pollTimer = null;
+      let pollProvider = null;
 
       const $ = (id) => document.getElementById(id);
+
+      const providers = {
+        wan: {
+          key: "wan",
+          label: "Wan2.6",
+          queryUrl: (taskId) => `/api/v1/task/${encodeURIComponent(taskId)}`,
+        },
+        seedance: {
+          key: "seedance",
+          label: "Seedance1.5pro",
+          queryUrl: (taskId) => `/api/v1/seedance/task/${encodeURIComponent(taskId)}`,
+        },
+      };
+      let activeProvider = "wan";
 
       const state = {
         i2vImage: null,
         i2vAudio: null,
         t2vAudio: null,
         r2vVideos: [],
+        sdFirstFrame: null,
+        sdLastFrame: null,
       };
 
       function setBadge(status) {
@@ -447,6 +591,53 @@ _HTML = """<!doctype html>
         if (status === "SUCCEEDED") badge.classList.add("ok");
         else if (status === "FAILED" || status === "CANCELED") badge.classList.add("bad");
         else if (status === "PENDING" || status === "RUNNING") badge.classList.add("warn");
+      }
+
+      function setActiveProvider(providerKey) {
+        if (!providers[providerKey]) providerKey = "wan";
+        activeProvider = providerKey;
+
+        const tabWan = $("tab_wan");
+        const tabSeedance = $("tab_seedance");
+        tabWan?.classList.toggle("active", providerKey === "wan");
+        tabSeedance?.classList.toggle("active", providerKey === "seedance");
+
+        const providerBadge = $("provider_badge");
+        if (providerBadge) providerBadge.textContent = providers[providerKey].label;
+      }
+
+      function initProviderSwitcher() {
+        const pages = $("mode_pages");
+        const pageWan = $("page_wan");
+        const pageSeedance = $("page_seedance");
+
+        const scrollTo = (providerKey) => {
+          if (!pages) return;
+          const target = providerKey === "seedance" ? pageSeedance : pageWan;
+          if (!target) return;
+          pages.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
+        };
+
+        $("tab_wan")?.addEventListener("click", () => {
+          setActiveProvider("wan");
+          scrollTo("wan");
+        });
+        $("tab_seedance")?.addEventListener("click", () => {
+          setActiveProvider("seedance");
+          scrollTo("seedance");
+        });
+
+        let scrollDebounce = null;
+        pages?.addEventListener("scroll", () => {
+          if (scrollDebounce) clearTimeout(scrollDebounce);
+          scrollDebounce = setTimeout(() => {
+            if (!pages) return;
+            const idx = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
+            setActiveProvider(idx <= 0 ? "wan" : "seedance");
+          }, 80);
+        });
+
+        setActiveProvider("wan");
       }
 
       // 计算时间差（秒）
@@ -485,7 +676,7 @@ _HTML = """<!doctype html>
       }
 
       // 更新费用和时间显示
-      function updateCostAndTimeInfo(data) {
+      function updateCostAndTimeInfo(data, providerKey) {
         const costInfo = $("cost_info");
         const timeInfo = $("time_info");
 
@@ -497,28 +688,32 @@ _HTML = """<!doctype html>
 
         if (!data) return;
 
-        // 计算并显示费用（使用usage字段）
-        const sr = data.usage?.SR;  // 分辨率：720 或 1080
-        const duration = data.usage?.output_video_duration;  // 视频时长（秒）
+        const key = providers[providerKey] ? providerKey : activeProvider;
 
-        if (sr && duration) {
-          let pricePerSecond;
-          if (sr >= 1080) {
-            // 1080P: $0.15/秒
-            pricePerSecond = 0.15;
-          } else if (sr >= 720) {
-            // 720P: $0.1/秒
-            pricePerSecond = 0.1;
-          } else {
-            // 480P及以下不计费
-            pricePerSecond = null;
-          }
+        // 计算并显示费用（Seedance 不计算计费）
+        if (key !== "seedance") {
+          const sr = data.usage?.SR;  // 分辨率：720 或 1080
+          const duration = data.usage?.output_video_duration;  // 视频时长（秒）
 
-          if (pricePerSecond !== null) {
-            const cost = pricePerSecond * duration;
-            costInfo.textContent = `💰 $${cost.toFixed(2)}`;
-            costInfo.style.display = "";
-            costInfo.classList.add("ok");
+          if (sr && duration) {
+            let pricePerSecond;
+            if (sr >= 1080) {
+              // 1080P: $0.15/秒
+              pricePerSecond = 0.15;
+            } else if (sr >= 720) {
+              // 720P: $0.1/秒
+              pricePerSecond = 0.1;
+            } else {
+              // 480P及以下不计费
+              pricePerSecond = null;
+            }
+
+            if (pricePerSecond !== null) {
+              const cost = pricePerSecond * duration;
+              costInfo.textContent = `💰 $${cost.toFixed(2)}`;
+              costInfo.style.display = "";
+              costInfo.classList.add("ok");
+            }
           }
         }
 
@@ -528,6 +723,15 @@ _HTML = """<!doctype html>
         if (submitTime && endTime) {
           const durationSeconds = calculateDuration(submitTime, endTime);
           if (durationSeconds !== null) {
+            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+            timeInfo.style.display = "";
+            timeInfo.classList.add("ok");
+          }
+        } else if (data?.created_at && data?.updated_at) {
+          const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
+          const updatedAt = typeof data.updated_at === "number" ? data.updated_at : parseInt(String(data.updated_at), 10);
+          if (!isNaN(createdAt) && !isNaN(updatedAt) && updatedAt >= createdAt) {
+            const durationSeconds = updatedAt - createdAt;
             timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
             timeInfo.style.display = "";
             timeInfo.classList.add("ok");
@@ -600,6 +804,20 @@ _HTML = """<!doctype html>
           state.r2vVideos.splice(idx, 1);
           renderSelectedFiles();
         });
+
+        renderFileChips("sd_first_frame_list", state.sdFirstFrame ? [state.sdFirstFrame] : [], () => {
+          state.sdFirstFrame = null;
+          state.sdLastFrame = null;
+          $("sd_first_frame").value = "";
+          $("sd_last_frame").value = "";
+          renderSelectedFiles();
+        });
+
+        renderFileChips("sd_last_frame_list", state.sdLastFrame ? [state.sdLastFrame] : [], () => {
+          state.sdLastFrame = null;
+          $("sd_last_frame").value = "";
+          renderSelectedFiles();
+        });
       }
 
       async function readJsonSafely(res) {
@@ -620,18 +838,37 @@ _HTML = """<!doctype html>
       function stopPolling() {
         if (pollTimer) clearTimeout(pollTimer);
         pollTimer = null;
+        pollProvider = null;
         $("poll_stop").style.display = "none";
       }
 
-      function schedulePoll(taskId) {
+      function getTaskStatus(providerKey, data) {
+        if (!data) return "UNKNOWN";
+
+        const key = providers[providerKey] ? providerKey : activeProvider;
+        if (key === "seedance") {
+          const raw = String(data?.status || "").toLowerCase();
+          if (raw === "queued") return "PENDING";
+          if (raw === "running") return "RUNNING";
+          if (raw === "succeeded") return "SUCCEEDED";
+          if (raw === "failed") return "FAILED";
+          if (raw === "cancelled") return "CANCELED";
+          return "UNKNOWN";
+        }
+
+        return data?.task_status || "UNKNOWN";
+      }
+
+      function schedulePoll(taskId, providerKey) {
         stopPolling();
         $("poll_stop").style.display = "";
+        pollProvider = providers[providerKey] ? providerKey : activeProvider;
         const tick = async () => {
           try {
-            const data = await queryTask(taskId);
-            const status = data?.task_status || "UNKNOWN";
+            const data = await queryTask(taskId, pollProvider);
+            const status = getTaskStatus(pollProvider, data);
             setBadge(status);
-            updateCostAndTimeInfo(data);
+            updateCostAndTimeInfo(data, pollProvider);
             if (["SUCCEEDED", "FAILED", "CANCELED", "UNKNOWN"].includes(status)) {
               stopPolling();
               return;
@@ -646,20 +883,24 @@ _HTML = """<!doctype html>
         pollTimer = setTimeout(tick, 0);
       }
 
-      async function queryTask(taskId) {
-        const res = await fetch(`/api/v1/task/${encodeURIComponent(taskId)}`);
+      async function queryTask(taskId, providerKey) {
+        const provider = providers[providerKey] ? providers[providerKey] : providers[activeProvider];
+        const res = await fetch(provider.queryUrl(taskId));
         const payload = await readJsonSafely(res);
         if (!res.ok) {
           const msg = extractErrorMessage(payload);
           throw new Error(msg);
         }
         const data = payload?.data ?? null;
-        const videoUrl = data?.oss_video_url ?? data?.video_url ?? "";
+        const key = providers[providerKey] ? providerKey : activeProvider;
+        const videoUrl = key === "seedance"
+          ? (data?.s3_video_url ?? data?.content?.video_url ?? "")
+          : (data?.s3_video_url ?? data?.video_url ?? "");
         setPreviewUrl(videoUrl);
         return data;
       }
 
-      async function createTask(path, formData) {
+      async function createTask(path, formData, providerKey) {
         stopPolling();
         setBadge("SUBMITTING");
         updateCostAndTimeInfo(null); // 清空之前的信息
@@ -671,7 +912,7 @@ _HTML = """<!doctype html>
         if (!res.ok) {
           const msg = extractErrorMessage(payload);
           setBadge("FAILED");
-          updateCostAndTimeInfo(null);
+          updateCostAndTimeInfo(null, pollProvider);
           throw new Error(msg);
         }
         if (!payload?.success) {
@@ -680,10 +921,11 @@ _HTML = """<!doctype html>
           updateCostAndTimeInfo(null);
           throw new Error(msg);
         }
-        const taskId = payload?.data?.task_id;
+        const key = providers[providerKey] ? providerKey : activeProvider;
+        const taskId = key === "seedance" ? payload?.data?.id : payload?.data?.task_id;
         $("task_id").value = taskId || "";
-        setBadge(payload?.data?.task_status || "PENDING");
-        if (taskId) schedulePoll(taskId);
+        setBadge(key === "seedance" ? "PENDING" : (payload?.data?.task_status || "PENDING"));
+        if (taskId) schedulePoll(taskId, providerKey);
         goToTaskSection();
         return taskId;
       }
@@ -747,6 +989,41 @@ _HTML = """<!doctype html>
         if (ignored > 0) alert(`R2V: 最多 3 个参考视频，已忽略 ${ignored} 个`);
       });
 
+      $("sd_first_frame").addEventListener("change", () => {
+        const file = $("sd_first_frame").files?.[0] || null;
+        state.sdFirstFrame = file;
+        $("sd_first_frame").value = "";
+        renderSelectedFiles();
+      });
+
+      // 未选择首帧时，阻止打开尾帧选择器
+      $("sd_last_frame_btn").addEventListener("click", (e) => {
+        if (state.sdFirstFrame) return;
+        e.preventDefault();
+        e.stopPropagation();
+        alert("请先选择首帧图片");
+      });
+      $("sd_last_frame").addEventListener("click", (e) => {
+        if (state.sdFirstFrame) return;
+        e.preventDefault();
+        e.stopPropagation();
+        alert("请先选择首帧图片");
+      });
+
+      $("sd_last_frame").addEventListener("change", () => {
+        const file = $("sd_last_frame").files?.[0] || null;
+        $("sd_last_frame").value = "";
+        if (!file) return;
+        if (!state.sdFirstFrame) {
+          state.sdLastFrame = null;
+          renderSelectedFiles();
+          alert("请先选择首帧图片");
+          return;
+        }
+        state.sdLastFrame = file;
+        renderSelectedFiles();
+      });
+
       // T2V
       $("t2v_submit").addEventListener("click", async (e) => {
         e.preventDefault();
@@ -765,7 +1042,7 @@ _HTML = """<!doctype html>
         appendIf(form, "seed", $("t2v_seed").value);
         const audioFile = state.t2vAudio;
         if (audioFile) form.append("audio", audioFile);
-        try { await createTask("/api/v1/video/t2v", form); }
+        try { await createTask("/api/v1/video/t2v", form, "wan"); }
         catch (e) { alert(e.message); }
       });
 
@@ -788,7 +1065,7 @@ _HTML = """<!doctype html>
         appendIf(form, "seed", $("i2v_seed").value);
         const audioFile = state.i2vAudio;
         if (audioFile) form.append("audio", audioFile);
-        try { await createTask("/api/v1/video/i2v", form); }
+        try { await createTask("/api/v1/video/i2v", form, "wan"); }
         catch (e) { alert(e.message); }
       });
 
@@ -813,7 +1090,34 @@ _HTML = """<!doctype html>
         form.append("watermark", $("r2v_watermark").checked ? "true" : "false");
         appendIf(form, "seed", $("r2v_seed").value);
 
-        try { await createTask("/api/v1/video/r2v", form); }
+        try { await createTask("/api/v1/video/r2v", form, "wan"); }
+        catch (e) { alert(e.message); }
+      });
+
+      // Seedance
+      $("sd_submit").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const prompt = $("sd_prompt").value.trim();
+        if (!prompt) return alert("Seedance: prompt 必填");
+
+        const firstFrame = state.sdFirstFrame;
+        const lastFrame = state.sdLastFrame;
+        if (lastFrame && !firstFrame) return alert("Seedance: 选择尾帧时必须同时选择首帧");
+
+        const form = new FormData();
+        appendIf(form, "model", $("sd_model").value);
+        form.append("prompt", prompt);
+        form.append("generate_audio", $("sd_generate_audio").checked ? "true" : "false");
+        appendIf(form, "resolution", $("sd_resolution").value);
+        appendIf(form, "ratio", $("sd_ratio").value);
+        appendIf(form, "duration", $("sd_duration").value);
+        appendIf(form, "seed", $("sd_seed").value);
+        form.append("camera_fixed", $("sd_camera_fixed").checked ? "true" : "false");
+        form.append("watermark", $("sd_watermark").checked ? "true" : "false");
+        if (firstFrame) form.append("first_frame", firstFrame);
+        if (lastFrame) form.append("last_frame", lastFrame);
+
+        try { await createTask("/api/v1/seedance/task", form, "seedance"); }
         catch (e) { alert(e.message); }
       });
 
@@ -826,12 +1130,12 @@ _HTML = """<!doctype html>
         setBadge("QUERYING");
         updateCostAndTimeInfo(null); // 清空之前的信息
         try {
-          const data = await queryTask(taskId);
-          const status = data?.task_status || "UNKNOWN";
+          const data = await queryTask(taskId, activeProvider);
+          const status = getTaskStatus(activeProvider, data);
           setBadge(status);
-          updateCostAndTimeInfo(data);
+          updateCostAndTimeInfo(data, activeProvider);
           if (!["SUCCEEDED", "FAILED", "CANCELED", "UNKNOWN"].includes(status)) {
-            schedulePoll(taskId);
+            schedulePoll(taskId, activeProvider);
           }
         } catch (e) {
           setBadge("FAILED");
@@ -846,6 +1150,7 @@ _HTML = """<!doctype html>
         setBadge("STOPPED");
       });
 
+      initProviderSwitcher();
       renderSelectedFiles();
     </script>
   </body>

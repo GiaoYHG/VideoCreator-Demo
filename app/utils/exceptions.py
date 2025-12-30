@@ -24,6 +24,11 @@ class DashScopeAPIException(VideoCreatorException):
     pass
 
 
+class SeedanceAPIException(VideoCreatorException):
+    """Seedance API调用异常"""
+    pass
+
+
 class FileValidationException(VideoCreatorException):
     """文件验证异常"""
     pass

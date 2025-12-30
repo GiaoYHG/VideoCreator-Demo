@@ -31,7 +31,7 @@ async def query_task(
 
     **视频URL说明：**
     - video_url: DashScope临时URL（24小时有效）
-    - oss_video_url: 转存到自有OSS的URL（签名URL，有效期取决于oss.url_expiration）
+    - s3_video_url: 转存到自有S3的URL（签名URL，有效期取决于s3.url_expiration）
     """
     try:
         result = await video_service.query_task_status(task_id)

@@ -216,7 +216,7 @@ class VideoService:
             orig_prompt=output.get("orig_prompt"),
             actual_prompt=output.get("actual_prompt"),
             video_url=output.get("video_url"),
-            oss_video_url=None,
+            s3_video_url=None,
             usage=None,
             error_code=output.get("code"),
             error_message=output.get("message")
@@ -238,11 +238,11 @@ class VideoService:
         if task_status == "SUCCEEDED" and output.get("video_url"):
             try:
                 # 下载视频并上传到自有S3
-                _, oss_url = await oss_service.download_and_upload(
+                _, s3_url = await oss_service.download_and_upload(
                     output["video_url"],
                     "output_video"
                 )
-                query_response.oss_video_url = oss_url
+                query_response.s3_video_url = s3_url
             except Exception:
                 # 转存失败不影响返回临时URL
                 pass
