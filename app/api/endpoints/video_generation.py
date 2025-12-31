@@ -8,11 +8,11 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status
 
 from app.models.request import I2VRequest, T2VRequest, R2VRequest
 from app.models.response import BaseResponse
-from app.services.s3_service import oss_service
+from app.services.s3_service import s3_service
 from app.services.video_service import video_service
 from app.utils.exceptions import (
     FileValidationException,
-    OSSUploadException,
+    S3UploadException,
     DashScopeAPIException
 )
 from app.utils.validators import FileValidator
@@ -57,13 +57,13 @@ async def create_i2v_video(
     try:
         # 1. 验证并上传图片
         img_content, img_ext = await FileValidator.validate_image(image)
-        img_path, img_url = await oss_service.upload_file(img_content, "image", img_ext)
+        img_path, img_url = await s3_service.upload_file(img_content, "image", img_ext)
 
         # 2. 如果有音频，验证并上传
         audio_url = None
         if audio:
             audio_content, audio_ext = await FileValidator.validate_audio(audio)
-            audio_path, audio_url = await oss_service.upload_file(audio_content, "audio", audio_ext)
+            audio_path, audio_url = await s3_service.upload_file(audio_content, "audio", audio_ext)
 
         # 3. 构建请求对象
         request = I2VRequest(
@@ -93,7 +93,7 @@ async def create_i2v_video(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"success": False, "message": e.message, "details": e.details}
         )
-    except OSSUploadException as e:
+    except S3UploadException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"success": False, "message": e.message, "details": e.details}
@@ -135,7 +135,7 @@ async def create_t2v_video(
         audio_url = None
         if audio:
             audio_content, audio_ext = await FileValidator.validate_audio(audio)
-            audio_path, audio_url = await oss_service.upload_file(audio_content, "audio", audio_ext)
+            audio_path, audio_url = await s3_service.upload_file(audio_content, "audio", audio_ext)
 
         # 2. 构建请求对象
         request = T2VRequest(
@@ -165,7 +165,7 @@ async def create_t2v_video(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"success": False, "message": e.message, "details": e.details}
         )
-    except OSSUploadException as e:
+    except S3UploadException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"success": False, "message": e.message, "details": e.details}
@@ -220,7 +220,7 @@ async def create_r2v_video(
         reference_video_urls = []
         for video in reference_videos:
             video_content, video_ext = await FileValidator.validate_video(video)
-            video_path, video_url = await oss_service.upload_file(video_content, "video", video_ext)
+            video_path, video_url = await s3_service.upload_file(video_content, "video", video_ext)
             reference_video_urls.append(video_url)
 
         # 4. 构建请求对象
@@ -250,7 +250,7 @@ async def create_r2v_video(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"success": False, "message": e.message, "details": e.details}
         )
-    except OSSUploadException as e:
+    except S3UploadException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"success": False, "message": e.message, "details": e.details}

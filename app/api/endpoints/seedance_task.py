@@ -12,12 +12,12 @@ from app.services.seedance_video_service import seedance_video_service
 from app.services.seedance_service import DEFAULT_SEEDANCE_MODEL_ID
 from app.utils.exceptions import (
     FileValidationException,
-    OSSUploadException,
+    S3UploadException,
     SeedanceAPIException,
     ConfigurationException,
 )
 from app.utils.seedance_validators import SeedanceFileValidator
-from app.services.s3_service import oss_service
+from app.services.s3_service import s3_service
 
 
 router = APIRouter(prefix="/api/v1/seedance", tags=["Seedance"])
@@ -76,7 +76,7 @@ def _build_prompt_text(
 
 @router.post("/task", response_model=BaseResponse, summary="创建 Seedance 视频任务")
 async def create_seedance_task(
-    model: str = Form(DEFAULT_SEEDANCE_MODEL_ID, description="模型 ID（默认 doubao-seedance-1-5-pro-251215）"),
+    model: str = Form(DEFAULT_SEEDANCE_MODEL_ID, description="模型 ID（默认 seedance-1-5-pro-251215）"),
     prompt: str = Form(..., description="文本提示词（必填）"),
     first_frame: Optional[UploadFile] = File(None, description="首帧图片（可选）"),
     last_frame: Optional[UploadFile] = File(None, description="尾帧图片（可选，需与首帧一起使用）"),
@@ -103,11 +103,11 @@ async def create_seedance_task(
 
         if first_frame:
             img_content, img_ext = await SeedanceFileValidator.validate_image(first_frame)
-            _, first_frame_url = await oss_service.upload_file(img_content, "image", img_ext)
+            _, first_frame_url = await s3_service.upload_file(img_content, "image", img_ext)
 
         if last_frame:
             img_content, img_ext = await SeedanceFileValidator.validate_image(last_frame)
-            _, last_frame_url = await oss_service.upload_file(img_content, "image", img_ext)
+            _, last_frame_url = await s3_service.upload_file(img_content, "image", img_ext)
 
         prompt_text = _build_prompt_text(
             prompt,
@@ -155,7 +155,7 @@ async def create_seedance_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"success": False, "message": e.message, "details": e.details},
         )
-    except OSSUploadException as e:
+    except S3UploadException as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"success": False, "message": e.message, "details": e.details},

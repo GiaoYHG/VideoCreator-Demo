@@ -10,7 +10,7 @@ import uuid
 import httpx
 
 from app.config import settings
-from app.utils.exceptions import OSSUploadException
+from app.utils.exceptions import S3UploadException
 
 
 class S3Service:
@@ -37,9 +37,9 @@ class S3Service:
             self.s3_client.head_bucket(Bucket=self.bucket_name)
 
         except (ClientError, BotoCoreError) as e:
-            raise OSSUploadException(f"S3客户端初始化失败: {str(e)}")
+            raise S3UploadException(f"S3客户端初始化失败: {str(e)}")
         except Exception as e:
-            raise OSSUploadException(f"S3客户端初始化异常: {str(e)}")
+            raise S3UploadException(f"S3客户端初始化异常: {str(e)}")
 
     def _generate_file_path(
         self,
@@ -90,7 +90,7 @@ class S3Service:
             tuple[str, str]: (S3文件路径, 签名URL)
 
         Raises:
-            OSSUploadException: 上传失败
+            S3UploadException: 上传失败
         """
         try:
             # 生成文件路径
@@ -125,9 +125,9 @@ class S3Service:
             return file_path, signed_url
 
         except (ClientError, BotoCoreError) as e:
-            raise OSSUploadException(f"S3上传失败: {str(e)}")
+            raise S3UploadException(f"S3上传失败: {str(e)}")
         except Exception as e:
-            raise OSSUploadException(f"文件上传异常: {str(e)}")
+            raise S3UploadException(f"文件上传异常: {str(e)}")
 
     def generate_signed_url(self, file_path: str) -> str:
         """
@@ -140,7 +140,7 @@ class S3Service:
             str: 签名后的公网访问URL
 
         Raises:
-            OSSUploadException: 生成失败
+            S3UploadException: 生成失败
         """
         try:
             # 生成有效期为指定时间的签名URL
@@ -154,9 +154,9 @@ class S3Service:
             )
             return signed_url
         except (ClientError, BotoCoreError) as e:
-            raise OSSUploadException(f"生成签名URL失败: {str(e)}")
+            raise S3UploadException(f"生成签名URL失败: {str(e)}")
         except Exception as e:
-            raise OSSUploadException(f"生成签名URL异常: {str(e)}")
+            raise S3UploadException(f"生成签名URL异常: {str(e)}")
 
     async def download_and_upload(self, source_url: str, file_type: Literal["output_video"]) -> tuple[str, str]:
         """
@@ -170,7 +170,7 @@ class S3Service:
             tuple[str, str]: (S3文件路径, 签名URL)
 
         Raises:
-            OSSUploadException: 下载或上传失败
+            S3UploadException: 下载或上传失败
         """
         try:
             # 异步下载文件
@@ -188,13 +188,10 @@ class S3Service:
             return await self.upload_file(file_content, file_type, file_ext)
 
         except httpx.HTTPError as e:
-            raise OSSUploadException(f"文件下载失败: {str(e)}")
+            raise S3UploadException(f"文件下载失败: {str(e)}")
         except Exception as e:
-            raise OSSUploadException(f"文件转存失败: {str(e)}")
+            raise S3UploadException(f"文件转存失败: {str(e)}")
 
 
-# 全局S3服务实例（保持向后兼容的命名）
-oss_service = S3Service()
-
-# 也提供新的命名
-s3_service = oss_service
+# 全局 S3 服务实例
+s3_service = S3Service()

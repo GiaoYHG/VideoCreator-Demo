@@ -227,7 +227,7 @@ reference_videos: <files> # 参考视频（1-3个）
 POST /api/v1/seedance/task
 Content-Type: multipart/form-data
 
-model: string              # 可选（默认 doubao-seedance-1-5-pro-251215）
+model: string              # 可选（默认 seedance-1-5-pro-251215）
 prompt: string             # 必填
 first_frame: <file>        # 可选（首帧图）
 last_frame: <file>         # 可选（尾帧图；有 last_frame 必须同时传 first_frame）
@@ -264,7 +264,7 @@ GET /api/v1/seedance/task/{task_id}
   "message": "任务状态: succeeded",
   "data": {
     "id": "cgt-2025******-****",
-    "model": "doubao-seedance-1-5-pro-251215",
+    "model": "seedance-1-5-pro-251215",
     "status": "succeeded",
     "content": {
       "video_url": "https://ark-content-generation-cn-beijing.tos-cn-beijing.volces.com/xxx"

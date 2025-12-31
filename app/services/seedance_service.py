@@ -13,7 +13,7 @@ from app.config import settings
 from app.utils.exceptions import SeedanceAPIException, ConfigurationException
 
 
-DEFAULT_SEEDANCE_MODEL_ID = "doubao-seedance-1-5-pro-251215"
+DEFAULT_SEEDANCE_MODEL_ID = "seedance-1-5-pro-251215"
 
 
 class SeedanceService:

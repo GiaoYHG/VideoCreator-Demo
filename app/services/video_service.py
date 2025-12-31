@@ -11,7 +11,7 @@ from app.models.response import (
     TaskUsage
 )
 from app.services.dashscope_service import dashscope_service
-from app.services.s3_service import oss_service
+from app.services.s3_service import s3_service
 from app.db.crud import create_video_task
 
 
@@ -238,7 +238,7 @@ class VideoService:
         if task_status == "SUCCEEDED" and output.get("video_url"):
             try:
                 # 下载视频并上传到自有S3
-                _, s3_url = await oss_service.download_and_upload(
+                _, s3_url = await s3_service.download_and_upload(
                     output["video_url"],
                     "output_video"
                 )

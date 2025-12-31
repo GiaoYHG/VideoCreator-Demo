@@ -8,7 +8,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.db.crud import create_video_task
-from app.services.s3_service import oss_service
+from app.services.s3_service import s3_service
 from app.services.seedance_service import seedance_service
 
 
@@ -75,7 +75,7 @@ class SeedanceVideoService:
         status_raw = (data.get("status") or "").lower()
         if status_raw == "succeeded" and video_url:
             try:
-                _, s3_url = await oss_service.download_and_upload(video_url, "output_video")
+                _, s3_url = await s3_service.download_and_upload(video_url, "output_video")
                 data["s3_video_url"] = s3_url
             except Exception:
                 pass

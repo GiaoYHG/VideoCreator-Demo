@@ -456,7 +456,7 @@ _HTML = """<!doctype html>
               <label>Prompt（必填）</label>
               <textarea id="sd_prompt" placeholder="描述你想生成的视频..."></textarea>
               <label>Model</label>
-              <input id="sd_model" value="doubao-seedance-1-5-pro-251215" />
+              <input id="sd_model" value="seedance-1-5-pro-251215" />
               <div class="row">
                 <div>
                   <label>Resolution</label>

@@ -14,8 +14,8 @@ class VideoCreatorException(Exception):
         super().__init__(self.message)
 
 
-class OSSUploadException(VideoCreatorException):
-    """S3上传异常（为保持兼容性保留原类名）"""
+class S3UploadException(VideoCreatorException):
+    """S3 上传异常"""
     pass
 
 
