@@ -131,6 +131,7 @@ _HTML = """<!doctype html>
       .card .actions { display: flex; gap: 10px; margin-top: 12px; }
       .card .actions button { width: auto; flex: 1; }
       .wide { grid-column: span 12; }
+      .half { grid-column: span 6; }
       .status {
         background: rgba(255,255,255,.03);
         border: 1px solid var(--border);
@@ -254,6 +255,7 @@ _HTML = """<!doctype html>
       <div class="tabs" role="tablist" aria-label="模型选择">
         <button id="tab_wan" class="tab active" type="button">Wan2.6</button>
         <button id="tab_seedance" class="tab" type="button">Seedance1.5pro</button>
+        <button id="tab_sora" class="tab" type="button">Sora</button>
       </div>
     </header>
 
@@ -524,6 +526,60 @@ _HTML = """<!doctype html>
             </section>
           </div>
         </section>
+
+        <section id="page_sora" class="page" data-provider="sora">
+          <div class="grid">
+            <section class="card half">
+              <h2>Sora</h2>
+              <small>POST <span class="mono">/api/v1/sora/video</span></small>
+              <label>Prompt（必填）</label>
+              <textarea id="sora_prompt" placeholder="描述你想生成的视频..."></textarea>
+              <div class="row">
+                <div>
+                  <label>Model</label>
+                  <select id="sora_model">
+                    <option value="sora-2" selected>sora-2</option>
+                    <option value="sora-2-pro">sora-2-pro</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Seconds</label>
+                  <select id="sora_seconds">
+                    <option value="4" selected>4</option>
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                  </select>
+                </div>
+              </div>
+              <label>Size</label>
+              <select id="sora_size">
+                <option value="720x1280" selected>720x1280（9:16）</option>
+                <option value="1280x720">1280x720（16:9）</option>
+                <option value="1024x1792">1024x1792（9:16）</option>
+                <option value="1792x1024">1792x1024（16:9）</option>
+              </select>
+              <label>Input Reference（可选，仅图片）</label>
+              <input id="sora_input_reference" type="file" accept="image/*" />
+              <label for="sora_input_reference" class="fileBtn">选择参考图片</label>
+              <div id="sora_input_reference_list" class="fileList"></div>
+              <div class="actions">
+                <button id="sora_submit">创建任务</button>
+              </div>
+            </section>
+
+            <section class="card half">
+              <h2>Sora Remix</h2>
+              <small>POST <span class="mono">/api/v1/sora/video/{video_id}/remix</span></small>
+              <label>Source Video ID（必填）</label>
+              <input id="sora_remix_video_id" class="mono" placeholder="video_id（完成态的视频）" />
+              <label>Prompt（必填）</label>
+              <textarea id="sora_remix_prompt" placeholder="新的提示词..."></textarea>
+              <div class="actions">
+                <button id="sora_remix_submit">创建 Remix 任务</button>
+              </div>
+            </section>
+          </div>
+        </section>
       </div>
 
       <div class="grid" style="margin-top: 14px;">
@@ -572,6 +628,11 @@ _HTML = """<!doctype html>
           label: "Seedance1.5pro",
           queryUrl: (taskId) => `/api/v1/seedance/task/${encodeURIComponent(taskId)}`,
         },
+        sora: {
+          key: "sora",
+          label: "Sora(OpenAI)",
+          queryUrl: (taskId) => `/api/v1/sora/video/${encodeURIComponent(taskId)}`,
+        },
       };
       let activeProvider = "wan";
 
@@ -582,6 +643,7 @@ _HTML = """<!doctype html>
         r2vVideos: [],
         sdFirstFrame: null,
         sdLastFrame: null,
+        soraInputReference: null,
       };
 
       function setBadge(status) {
@@ -599,8 +661,10 @@ _HTML = """<!doctype html>
 
         const tabWan = $("tab_wan");
         const tabSeedance = $("tab_seedance");
+        const tabSora = $("tab_sora");
         tabWan?.classList.toggle("active", providerKey === "wan");
         tabSeedance?.classList.toggle("active", providerKey === "seedance");
+        tabSora?.classList.toggle("active", providerKey === "sora");
 
         const providerBadge = $("provider_badge");
         if (providerBadge) providerBadge.textContent = providers[providerKey].label;
@@ -610,10 +674,13 @@ _HTML = """<!doctype html>
         const pages = $("mode_pages");
         const pageWan = $("page_wan");
         const pageSeedance = $("page_seedance");
+        const pageSora = $("page_sora");
 
         const scrollTo = (providerKey) => {
           if (!pages) return;
-          const target = providerKey === "seedance" ? pageSeedance : pageWan;
+          const target = providerKey === "seedance"
+            ? pageSeedance
+            : (providerKey === "sora" ? pageSora : pageWan);
           if (!target) return;
           pages.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
         };
@@ -626,6 +693,10 @@ _HTML = """<!doctype html>
           setActiveProvider("seedance");
           scrollTo("seedance");
         });
+        $("tab_sora")?.addEventListener("click", () => {
+          setActiveProvider("sora");
+          scrollTo("sora");
+        });
 
         let scrollDebounce = null;
         pages?.addEventListener("scroll", () => {
@@ -633,7 +704,9 @@ _HTML = """<!doctype html>
           scrollDebounce = setTimeout(() => {
             if (!pages) return;
             const idx = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
-            setActiveProvider(idx <= 0 ? "wan" : "seedance");
+            const order = ["wan", "seedance", "sora"];
+            const safeIdx = Math.max(0, Math.min(order.length - 1, idx));
+            setActiveProvider(order[safeIdx]);
           }, 80);
         });
 
@@ -690,8 +763,8 @@ _HTML = """<!doctype html>
 
         const key = providers[providerKey] ? providerKey : activeProvider;
 
-        // 计算并显示费用（Seedance 不计算计费）
-        if (key !== "seedance") {
+        // 计算并显示费用（Wan2.6 + Sora；Seedance 不计算计费）
+        if (key === "wan") {
           const sr = data.usage?.SR;  // 分辨率：720 或 1080
           const duration = data.usage?.output_video_duration;  // 视频时长（秒）
 
@@ -715,6 +788,22 @@ _HTML = """<!doctype html>
               costInfo.classList.add("ok");
             }
           }
+        } else if (key === "sora") {
+          const model = String(data?.model || "").trim();
+          const secondsRaw = data?.seconds;
+          const seconds = typeof secondsRaw === "number" ? secondsRaw : parseInt(String(secondsRaw ?? ""), 10);
+
+          const rateByModel = {
+            "sora-2": 0.10,
+            "sora-2-pro": 0.30,
+          };
+          const rate = rateByModel[model];
+          if (rate && !isNaN(seconds) && seconds > 0) {
+            const cost = rate * seconds;
+            costInfo.textContent = `💰 $${cost.toFixed(2)}`;
+            costInfo.style.display = "";
+            costInfo.classList.add("ok");
+          }
         }
 
         // 计算并显示时间
@@ -732,6 +821,15 @@ _HTML = """<!doctype html>
           const updatedAt = typeof data.updated_at === "number" ? data.updated_at : parseInt(String(data.updated_at), 10);
           if (!isNaN(createdAt) && !isNaN(updatedAt) && updatedAt >= createdAt) {
             const durationSeconds = updatedAt - createdAt;
+            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+            timeInfo.style.display = "";
+            timeInfo.classList.add("ok");
+          }
+        } else if (data?.created_at && data?.completed_at) {
+          const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
+          const completedAt = typeof data.completed_at === "number" ? data.completed_at : parseInt(String(data.completed_at), 10);
+          if (!isNaN(createdAt) && !isNaN(completedAt) && completedAt >= createdAt) {
+            const durationSeconds = completedAt - createdAt;
             timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
             timeInfo.style.display = "";
             timeInfo.classList.add("ok");
@@ -818,6 +916,12 @@ _HTML = """<!doctype html>
           $("sd_last_frame").value = "";
           renderSelectedFiles();
         });
+
+        renderFileChips("sora_input_reference_list", state.soraInputReference ? [state.soraInputReference] : [], () => {
+          state.soraInputReference = null;
+          $("sora_input_reference").value = "";
+          renderSelectedFiles();
+        });
       }
 
       async function readJsonSafely(res) {
@@ -853,6 +957,15 @@ _HTML = """<!doctype html>
           if (raw === "succeeded") return "SUCCEEDED";
           if (raw === "failed") return "FAILED";
           if (raw === "cancelled") return "CANCELED";
+          return "UNKNOWN";
+        }
+        if (key === "sora") {
+          const raw = String(data?.status || "").toLowerCase();
+          if (raw === "queued") return "PENDING";
+          if (raw === "running" || raw === "in_progress" || raw === "processing") return "RUNNING";
+          if (raw === "completed" || raw === "succeeded") return "SUCCEEDED";
+          if (raw === "failed") return "FAILED";
+          if (raw === "cancelled" || raw === "canceled") return "CANCELED";
           return "UNKNOWN";
         }
 
@@ -893,9 +1006,14 @@ _HTML = """<!doctype html>
         }
         const data = payload?.data ?? null;
         const key = providers[providerKey] ? providerKey : activeProvider;
-        const videoUrl = key === "seedance"
-          ? (data?.s3_video_url ?? data?.content?.video_url ?? "")
-          : (data?.s3_video_url ?? data?.video_url ?? "");
+        let videoUrl = "";
+        if (key === "seedance") {
+          videoUrl = data?.s3_video_url ?? data?.content?.video_url ?? "";
+        } else if (key === "sora") {
+          videoUrl = data?.s3_video_url ?? "";
+        } else {
+          videoUrl = data?.s3_video_url ?? data?.video_url ?? "";
+        }
         setPreviewUrl(videoUrl);
         return data;
       }
@@ -922,9 +1040,10 @@ _HTML = """<!doctype html>
           throw new Error(msg);
         }
         const key = providers[providerKey] ? providerKey : activeProvider;
-        const taskId = key === "seedance" ? payload?.data?.id : payload?.data?.task_id;
+        const taskId = payload?.data?.task_id ?? payload?.data?.id;
         $("task_id").value = taskId || "";
-        setBadge(key === "seedance" ? "PENDING" : (payload?.data?.task_status || "PENDING"));
+        const initStatus = getTaskStatus(key, payload?.data);
+        setBadge(initStatus === "UNKNOWN" ? "PENDING" : initStatus);
         if (taskId) schedulePoll(taskId, providerKey);
         goToTaskSection();
         return taskId;
@@ -1024,6 +1143,13 @@ _HTML = """<!doctype html>
         renderSelectedFiles();
       });
 
+      $("sora_input_reference").addEventListener("change", () => {
+        const file = $("sora_input_reference").files?.[0] || null;
+        state.soraInputReference = file;
+        $("sora_input_reference").value = "";
+        renderSelectedFiles();
+      });
+
       // T2V
       $("t2v_submit").addEventListener("click", async (e) => {
         e.preventDefault();
@@ -1118,6 +1244,39 @@ _HTML = """<!doctype html>
         if (lastFrame) form.append("last_frame", lastFrame);
 
         try { await createTask("/api/v1/seedance/task", form, "seedance"); }
+        catch (e) { alert(e.message); }
+      });
+
+      // Sora
+      $("sora_submit").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const prompt = $("sora_prompt").value.trim();
+        if (!prompt) return alert("Sora: prompt 必填");
+
+        const form = new FormData();
+        form.append("prompt", prompt);
+        appendIf(form, "model", $("sora_model").value);
+        appendIf(form, "seconds", $("sora_seconds").value);
+        appendIf(form, "size", $("sora_size").value);
+
+        const ref = state.soraInputReference;
+        if (ref) form.append("input_reference", ref);
+
+        try { await createTask("/api/v1/sora/video", form, "sora"); }
+        catch (e) { alert(e.message); }
+      });
+
+      $("sora_remix_submit").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const sourceId = $("sora_remix_video_id").value.trim();
+        if (!sourceId) return alert("Sora Remix: video_id 必填");
+        const prompt = $("sora_remix_prompt").value.trim();
+        if (!prompt) return alert("Sora Remix: prompt 必填");
+
+        const form = new FormData();
+        form.append("prompt", prompt);
+
+        try { await createTask(`/api/v1/sora/video/${encodeURIComponent(sourceId)}/remix`, form, "sora"); }
         catch (e) { alert(e.message); }
       });
 

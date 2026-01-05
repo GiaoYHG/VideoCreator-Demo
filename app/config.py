@@ -42,6 +42,11 @@ class Settings:
         self.seedance_api_key: str = seedance.get("api_key", "")
         self.seedance_base_url: str = seedance.get("base_url", "https://ark.cn-beijing.volces.com")
 
+        # OpenAI API 配置（Sora）
+        openai = config_data.get("openai", {}) or {}
+        self.openai_api_key: str = openai.get("api_key", "")
+        self.openai_base_url: str = openai.get("base_url", "https://api.openai.com")
+
         # AWS S3 配置
         s3 = config_data.get("s3", {})
         self.s3_access_key_id: str = s3.get("access_key_id", "")

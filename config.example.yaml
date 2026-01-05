@@ -26,6 +26,18 @@ seedance:
 
 
 # ====================================
+# OpenAI API 配置（Sora）
+# ====================================
+openai:
+  # API Key（可选：仅在使用 Sora 接口时需要）
+  # 获取地址：https://platform.openai.com/api-keys
+  api_key: your_openai_api_key_here
+
+  # API Base URL（可选）
+  base_url: https://api.openai.com
+
+
+# ====================================
 # AWS S3 配置
 # ====================================
 s3:

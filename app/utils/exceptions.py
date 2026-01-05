@@ -29,6 +29,11 @@ class SeedanceAPIException(VideoCreatorException):
     pass
 
 
+class OpenAIAPIException(VideoCreatorException):
+    """OpenAI API调用异常"""
+    pass
+
+
 class FileValidationException(VideoCreatorException):
     """文件验证异常"""
     pass

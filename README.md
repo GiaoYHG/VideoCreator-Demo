@@ -1,17 +1,17 @@
 # 视频生成服务 API
 
-基于阿里云 DashScope 通义万相的视频生成服务后端，提供图生视频、文生视频、参考生视频三种生成方式。
+基于阿里云 DashScope 通义万相（Wan2.6）、字节跳动 Seedance 1.5 pro、OpenAI Sora 的视频生成服务后端，提供多种视频生成/查询能力，并在成功后自动转存到 S3。
 
 ## 功能特性
 
-- ✅ **图生视频 (I2V)**: 根据首帧图像 + 文本描述生成视频
-- ✅ **文生视频 (T2V)**: 纯文本描述生成视频
-- ✅ **参考生视频 (R2V)**: 参考输入视频中的角色形象生成新视频
-- ✅ **统一查询接口**: 单一接口查询所有任务状态
+- ✅ **Wan2.6 (DashScope)**: 图生视频 (I2V) / 文生视频 (T2V) / 参考生视频 (R2V)
+- ✅ **Seedance 1.5 pro（Ark）**: 创建/查询任务，支持首帧/首尾帧图生
+- ✅ **Sora（OpenAI Videos API）**: 创建/Remix/查询，支持 `input_reference` 图片参考
+- ✅ **任务查询**: Wan2.6 使用统一查询接口；Seedance/Sora 使用各自查询接口
 - ✅ **自动文件上传**: 自动上传到 AWS S3 并生成公网 URL
 - ✅ **视频永久存储**: 自动将生成的视频转存到自有 S3
 - ✅ **任务记录**: SQLite数据库记录所有任务创建信息
-- ✅ **费用统计**: UI自动计算并显示视频生成费用
+- ✅ **费用统计**: UI 自动计算并显示 Wan2.6 视频生成费用（Seedance/Sora 不计算）
 - ✅ **Swagger 文档**: 自动生成 API 文档
 - ✅ **模块化设计**: 清晰的代码结构，易于维护
 
@@ -29,18 +29,26 @@ VideoCreator/
 │   │   └── endpoints/
 │   │       ├── video_generation.py # 视频生成端点
 │   │       ├── task_query.py       # 任务查询端点
+│   │       ├── seedance_task.py    # Seedance 创建/查询端点
+│   │       ├── sora_video.py       # Sora 创建/Remix/查询端点
 │   │       └── ui.py               # 测试 UI 端点
 │   ├── services/                    # 业务服务
 │   │   ├── s3_service.py           # S3 上传服务
 │   │   ├── dashscope_service.py    # DashScope API 服务
-│   │   └── video_service.py        # 业务逻辑服务
+│   │   ├── video_service.py        # Wan2.6 业务逻辑服务
+│   │   ├── seedance_service.py     # Seedance API 服务
+│   │   ├── seedance_video_service.py # Seedance 业务逻辑服务
+│   │   ├── openai_video_service.py # OpenAI Videos API 服务
+│   │   └── sora_video_service.py   # Sora 业务逻辑服务
 │   ├── db/                          # 数据库模块
 │   │   ├── database.py             # 数据库连接管理
 │   │   ├── models.py               # 数据库模型
 │   │   └── crud.py                 # 数据库操作
 │   └── utils/                       # 工具类
 │       ├── exceptions.py           # 自定义异常
-│       └── validators.py           # 文件验证器
+│       ├── validators.py           # 文件验证器（Wan2.6）
+│       ├── seedance_validators.py  # Seedance 文件验证器
+│       └── openai_validators.py    # OpenAI 文件验证器
 ├── data/                            # 数据目录
 │   └── video_tasks.db              # SQLite数据库
 ├── config.yaml                      # 配置文件（含密钥，不提交到Git）
@@ -64,6 +72,16 @@ VideoCreator/
 dashscope:
   api_key: your_dashscope_api_key_here
   region: singapore  # 或 beijing
+
+# 可选：Seedance（Ark）
+seedance:
+  api_key: your_seedance_api_key_here
+  base_url: https://ark.cn-beijing.volces.com
+
+# 可选：OpenAI（Sora）
+openai:
+  api_key: your_openai_api_key_here
+  base_url: https://api.openai.com
 
 s3:
   access_key_id: your_aws_access_key_id
@@ -108,6 +126,8 @@ docker ps
 - Python 3.11+
 - AWS S3 账号
 - 阿里云 DashScope API Key
+- 字节跳动 Seedance API Key（可选）
+- OpenAI API Key（可选）
 
 #### 2. 安装依赖
 
@@ -150,6 +170,22 @@ dashscope:
 **获取 API Key**:
 - [阿里云 DashScope 控制台](https://www.alibabacloud.com/help/zh/model-studio/get-api-key)
 - 注意：北京和新加坡地域的 API Key 不同，不可混用
+
+### Seedance（Ark）配置（可选）
+
+```yaml
+seedance:
+  api_key: your_seedance_api_key_here
+  base_url: https://ark.cn-beijing.volces.com
+```
+
+### OpenAI（Sora）配置（可选）
+
+```yaml
+openai:
+  api_key: your_openai_api_key_here
+  base_url: https://api.openai.com
+```
 
 ### AWS S3 配置
 
@@ -288,7 +324,55 @@ GET /api/v1/seedance/task/{task_id}
 }
 ```
 
-### 查询任务状态
+### Sora（OpenAI Videos API）（创建/Remix/查询）
+
+```http
+POST /api/v1/sora/video
+Content-Type: multipart/form-data
+
+prompt: string            # 必填
+input_reference: <file>   # 可选（仅图片）
+model: sora-2|sora-2-pro  # 可选（默认 sora-2）
+seconds: 4|8|12           # 可选（默认 4）
+size: 720x1280|1280x720|1024x1792|1792x1024  # 可选（默认 720x1280）
+```
+
+创建响应示例（data 对齐 OpenAI 返回）：
+
+```json
+{
+  "success": true,
+  "message": "Sora 任务创建成功",
+  "data": {
+    "id": "video_123",
+    "object": "video",
+    "model": "sora-2",
+    "status": "queued",
+    "progress": 0,
+    "created_at": 1712697600,
+    "size": "1024x1792",
+    "seconds": "8",
+    "quality": "standard"
+  }
+}
+```
+
+```http
+POST /api/v1/sora/video/{video_id}/remix
+Content-Type: multipart/form-data
+
+prompt: string            # 必填
+```
+
+```http
+GET /api/v1/sora/video/{video_id}
+```
+
+查询响应说明：`data` 对齐 OpenAI `retrieve` 返回；当 `status` 为 `completed` 时，后端会下载 `/v1/videos/{id}/content` 并转存到 S3，额外补充 `s3_video_url` 字段。
+
+说明：本项目不提供 OpenAI 的 `List videos` / `Delete video` 两个接口。
+
+### Wan2.6 查询任务状态
 
 ```http
 GET /api/v1/task/{task_id}
@@ -317,10 +401,12 @@ GET /api/v1/task/{task_id}
 
 ## 费用计算
 
-UI会根据以下规则自动计算视频生成费用：
+UI 会根据以下规则自动计算视频生成费用（Seedance 不计算）：
 
 - **1080P**: $0.15/秒
 - **720P**: $0.1/秒
+- **Sora 2**: $0.10/秒
+- **Sora 2 Pro**: $0.30/秒
 
 费用 = 价格 × 视频时长（秒）
 
