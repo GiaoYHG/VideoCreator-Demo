@@ -5,6 +5,8 @@ Sora（OpenAI Videos API）端点
 
 from typing import Optional
 
+import os
+
 from fastapi import APIRouter, File, Form, HTTPException, Path, UploadFile, status
 
 from app.models.response import BaseResponse
@@ -23,7 +25,10 @@ router = APIRouter(prefix="/api/v1/sora", tags=["Sora(OpenAI)"])
 
 _ALLOWED_MODELS = {"sora-2", "sora-2-pro"}
 _ALLOWED_SECONDS = {4, 8, 12}
-_ALLOWED_SIZES = {"720x1280", "1280x720", "1024x1792", "1792x1024"}
+_ALLOWED_SIZES_BY_MODEL = {
+    "sora-2": {"720x1280", "1280x720"},
+    "sora-2-pro": {"720x1280", "1280x720", "1024x1792", "1792x1024"},
+}
 
 
 @router.post("/video", response_model=BaseResponse, summary="创建 Sora 视频任务")
@@ -41,8 +46,9 @@ async def create_sora_video(
         if seconds not in _ALLOWED_SECONDS:
             raise FileValidationException(f"seconds 不支持: {seconds}（仅支持 4/8/12）")
         size = (size or "").strip()
-        if size not in _ALLOWED_SIZES:
-            raise FileValidationException(f"size 不支持: {size}")
+        allowed_sizes = _ALLOWED_SIZES_BY_MODEL.get(model)
+        if not allowed_sizes or size not in allowed_sizes:
+            raise FileValidationException(f"size 不支持: {size}（model={model}）")
 
         prompt = (prompt or "").strip()
         if not prompt:
@@ -51,7 +57,10 @@ async def create_sora_video(
         input_ref_payload = None
         if input_reference:
             content, ext, content_type = await OpenAIFileValidator.validate_image(input_reference)
-            filename = input_reference.filename or f"input_reference.{ext}"
+            content, ext, content_type = OpenAIFileValidator.crop_and_resize_to_size(content, size=size)
+            original_name = (input_reference.filename or "input_reference").strip() or "input_reference"
+            base = os.path.splitext(original_name)[0] or "input_reference"
+            filename = f"{base}.{ext}"
             input_ref_payload = (filename, content, content_type)
 
         request_data = {
@@ -174,4 +183,3 @@ async def query_sora_video(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"success": False, "message": f"服务器内部错误: {str(e)}"},
         )
-

@@ -924,6 +924,28 @@ _HTML = """<!doctype html>
         });
       }
 
+      function updateSoraSizeOptions() {
+        const model = String($("sora_model")?.value || "sora-2").trim();
+        const allowed = model === "sora-2"
+          ? new Set(["720x1280", "1280x720"])
+          : new Set(["720x1280", "1280x720", "1024x1792", "1792x1024"]);
+
+        const sizeEl = $("sora_size");
+        if (!sizeEl) return;
+
+        const options = Array.from(sizeEl.options || []);
+        options.forEach((opt) => {
+          const ok = allowed.has(opt.value);
+          opt.disabled = !ok;
+          opt.hidden = !ok;
+        });
+
+        if (!allowed.has(sizeEl.value)) {
+          const firstAllowed = options.find((opt) => allowed.has(opt.value));
+          if (firstAllowed) sizeEl.value = firstAllowed.value;
+        }
+      }
+
       async function readJsonSafely(res) {
         const text = await res.text();
         if (!text) return null;
@@ -1149,6 +1171,9 @@ _HTML = """<!doctype html>
         $("sora_input_reference").value = "";
         renderSelectedFiles();
       });
+      $("sora_model").addEventListener("change", () => {
+        updateSoraSizeOptions();
+      });
 
       // T2V
       $("t2v_submit").addEventListener("click", async (e) => {
@@ -1311,6 +1336,7 @@ _HTML = """<!doctype html>
 
       initProviderSwitcher();
       renderSelectedFiles();
+      updateSoraSizeOptions();
     </script>
   </body>
 </html>
