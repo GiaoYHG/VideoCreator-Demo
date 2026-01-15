@@ -47,6 +47,10 @@ class Settings:
         self.openai_api_key: str = openai.get("api_key", "")
         self.openai_base_url: str = openai.get("base_url", "https://api.openai.com")
 
+        # Google Gemini API 配置（Veo）
+        google = config_data.get("google", {}) or {}
+        self.google_api_key: str = google.get("api_key", "")
+
         # AWS S3 配置
         s3 = config_data.get("s3", {})
         self.s3_access_key_id: str = s3.get("access_key_id", "")

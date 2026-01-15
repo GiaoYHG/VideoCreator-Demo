@@ -38,6 +38,15 @@ openai:
 
 
 # ====================================
+# Google Gemini API 配置（Veo 3.1）
+# ====================================
+google:
+  # API Key（可选：仅在使用 Veo 接口时需要）
+  # 获取地址：https://aistudio.google.com/apikey
+  api_key: your_google_api_key_here
+
+
+# ====================================
 # AWS S3 配置
 # ====================================
 s3:

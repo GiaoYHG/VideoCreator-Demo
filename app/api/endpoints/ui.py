@@ -256,6 +256,7 @@ _HTML = """<!doctype html>
         <button id="tab_wan" class="tab active" type="button">Wan2.6</button>
         <button id="tab_seedance" class="tab" type="button">Seedance1.5pro</button>
         <button id="tab_sora" class="tab" type="button">Sora</button>
+        <button id="tab_veo" class="tab" type="button">Veo3.1</button>
       </div>
     </header>
 
@@ -580,6 +581,106 @@ _HTML = """<!doctype html>
             </section>
           </div>
         </section>
+
+        <section id="page_veo" class="page" data-provider="veo">
+          <div class="grid">
+            <section class="card half">
+              <h2>Veo 3.1</h2>
+              <small>POST <span class="mono">/api/v1/veo/task</span></small>
+              <label>Prompt（必填）</label>
+              <textarea id="veo_prompt" placeholder="描述你想生成的视频..."></textarea>
+              <label>Negative Prompt（可选）</label>
+              <input id="veo_negative_prompt" placeholder="不希望出现的内容..." />
+              <div class="row">
+                <div>
+                  <label>Model</label>
+                  <select id="veo_model">
+                    <option value="veo-3.1-fast-generate-preview" selected>veo-3.1-fast-generate-preview</option>
+                    <option value="veo-3.1-generate-preview">veo-3.1-generate-preview</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Person Generation</label>
+                  <select id="veo_person_generation">
+                    <option value="auto" selected>auto</option>
+                    <option value="allow_all">allow_all</option>
+                    <option value="allow_adult">allow_adult</option>
+                  </select>
+                </div>
+              </div>
+              <div class="row">
+                <div>
+                  <label>Aspect Ratio</label>
+                  <select id="veo_aspect_ratio">
+                    <option value="16:9" selected>16:9</option>
+                    <option value="9:16">9:16</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Resolution</label>
+                  <select id="veo_resolution">
+                    <option value="720p">720p</option>
+                    <option value="1080p" selected>1080p</option>
+                    <option value="4k">4k</option>
+                  </select>
+                </div>
+              </div>
+              <label>Duration Seconds</label>
+              <select id="veo_duration_seconds">
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8" selected>8</option>
+              </select>
+              <div class="row">
+                <div>
+                  <label>First Frame（可选）</label>
+                  <input id="veo_first_frame" type="file" accept="image/*" />
+                  <label for="veo_first_frame" class="fileBtn">选择首帧图片</label>
+                  <div id="veo_first_frame_list" class="fileList"></div>
+                </div>
+                <div>
+                  <label>Last Frame（可选）</label>
+                  <input id="veo_last_frame" type="file" accept="image/*" />
+                  <label id="veo_last_frame_btn" for="veo_last_frame" class="fileBtn">选择尾帧图片</label>
+                  <div id="veo_last_frame_list" class="fileList"></div>
+                </div>
+              </div>
+              <label>Reference Images（可选，最多3张）</label>
+              <input id="veo_reference_images" type="file" accept="image/*" multiple />
+              <label for="veo_reference_images" class="fileBtn">选择参考图片（最多3张）</label>
+              <div id="veo_reference_images_list" class="fileList"></div>
+              <div class="actions">
+                <button id="veo_submit">创建任务</button>
+              </div>
+            </section>
+
+            <section class="card half">
+              <h2>Veo Extend</h2>
+              <small>POST <span class="mono">/api/v1/veo/task/{operation_name}/extend</span></small>
+              <label>Source Operation Name（必填）</label>
+              <input id="veo_extend_operation_name" class="mono" placeholder="复制上一次 Veo 的 task_id（通常以 operations/ 开头）" />
+              <div class="row">
+                <div>
+                  <label>Model</label>
+                  <select id="veo_extend_model">
+                    <option value="veo-3.1-fast-generate-preview" selected>veo-3.1-fast-generate-preview</option>
+                    <option value="veo-3.1-generate-preview">veo-3.1-generate-preview</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Negative Prompt（可选）</label>
+                  <input id="veo_extend_negative_prompt" placeholder="不希望出现的内容..." />
+                </div>
+              </div>
+              <label>Prompt（必填）</label>
+              <textarea id="veo_extend_prompt" placeholder="新的提示词..."></textarea>
+              <div class="actions">
+                <button id="veo_extend_submit">创建延长任务</button>
+              </div>
+              <small class="muted">说明：延长功能仅支持 Veo 生成的视频，且模型每次延长约 7 秒，只支持延长720p的视频。</small>
+            </section>
+          </div>
+        </section>
       </div>
 
       <div class="grid" style="margin-top: 14px;">
@@ -633,6 +734,11 @@ _HTML = """<!doctype html>
           label: "Sora(OpenAI)",
           queryUrl: (taskId) => `/api/v1/sora/video/${encodeURIComponent(taskId)}`,
         },
+        veo: {
+          key: "veo",
+          label: "Veo3.1",
+          queryUrl: (taskId) => `/api/v1/veo/task/${encodeURIComponent(taskId)}`,
+        },
       };
       let activeProvider = "wan";
 
@@ -644,6 +750,9 @@ _HTML = """<!doctype html>
         sdFirstFrame: null,
         sdLastFrame: null,
         soraInputReference: null,
+        veoFirstFrame: null,
+        veoLastFrame: null,
+        veoReferenceImages: [],
       };
 
       function setBadge(status) {
@@ -662,9 +771,11 @@ _HTML = """<!doctype html>
         const tabWan = $("tab_wan");
         const tabSeedance = $("tab_seedance");
         const tabSora = $("tab_sora");
+        const tabVeo = $("tab_veo");
         tabWan?.classList.toggle("active", providerKey === "wan");
         tabSeedance?.classList.toggle("active", providerKey === "seedance");
         tabSora?.classList.toggle("active", providerKey === "sora");
+        tabVeo?.classList.toggle("active", providerKey === "veo");
 
         const providerBadge = $("provider_badge");
         if (providerBadge) providerBadge.textContent = providers[providerKey].label;
@@ -675,12 +786,13 @@ _HTML = """<!doctype html>
         const pageWan = $("page_wan");
         const pageSeedance = $("page_seedance");
         const pageSora = $("page_sora");
+        const pageVeo = $("page_veo");
 
         const scrollTo = (providerKey) => {
           if (!pages) return;
           const target = providerKey === "seedance"
             ? pageSeedance
-            : (providerKey === "sora" ? pageSora : pageWan);
+            : (providerKey === "sora" ? pageSora : (providerKey === "veo" ? pageVeo : pageWan));
           if (!target) return;
           pages.scrollTo({ left: target.offsetLeft, behavior: "smooth" });
         };
@@ -697,6 +809,10 @@ _HTML = """<!doctype html>
           setActiveProvider("sora");
           scrollTo("sora");
         });
+        $("tab_veo")?.addEventListener("click", () => {
+          setActiveProvider("veo");
+          scrollTo("veo");
+        });
 
         let scrollDebounce = null;
         pages?.addEventListener("scroll", () => {
@@ -704,7 +820,7 @@ _HTML = """<!doctype html>
           scrollDebounce = setTimeout(() => {
             if (!pages) return;
             const idx = Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth));
-            const order = ["wan", "seedance", "sora"];
+            const order = ["wan", "seedance", "sora", "veo"];
             const safeIdx = Math.max(0, Math.min(order.length - 1, idx));
             setActiveProvider(order[safeIdx]);
           }, 80);
@@ -804,35 +920,63 @@ _HTML = """<!doctype html>
             costInfo.style.display = "";
             costInfo.classList.add("ok");
           }
+        } else if (key === "veo") {
+          // Veo 3.1 价格显示
+          const priceUsd = data?.estimated_price_usd;
+          if (typeof priceUsd === "number" && priceUsd > 0) {
+            costInfo.textContent = `💰 $${priceUsd.toFixed(2)}`;
+            costInfo.style.display = "";
+            costInfo.classList.add("ok");
+          }
         }
 
-        // 计算并显示时间
-        const submitTime = data.submit_time;
-        const endTime = data.end_time;
-        if (submitTime && endTime) {
-          const durationSeconds = calculateDuration(submitTime, endTime);
-          if (durationSeconds !== null) {
-            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+        // 计算并显示时间（仅在任务成功完成时显示）
+        const taskStatus = String(data?.status || "").toLowerCase();
+        const isSucceeded = taskStatus === "succeeded" || taskStatus === "completed" || taskStatus === "success";
+
+        if (!isSucceeded) {
+          // 任务未完成，不显示耗时
+          return;
+        }
+
+        // Veo 特殊处理：使用 elapsed_seconds 或 elapsed_time_formatted
+        if (key === "veo" && data?.elapsed_seconds) {
+          const elapsedSeconds = typeof data.elapsed_seconds === "number" ? data.elapsed_seconds : parseInt(String(data.elapsed_seconds), 10);
+          if (!isNaN(elapsedSeconds) && elapsedSeconds > 0) {
+            timeInfo.textContent = `⏱️ ${data.elapsed_time_formatted || formatDuration(elapsedSeconds)}`;
             timeInfo.style.display = "";
             timeInfo.classList.add("ok");
           }
-        } else if (data?.created_at && data?.updated_at) {
-          const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
-          const updatedAt = typeof data.updated_at === "number" ? data.updated_at : parseInt(String(data.updated_at), 10);
-          if (!isNaN(createdAt) && !isNaN(updatedAt) && updatedAt >= createdAt) {
-            const durationSeconds = updatedAt - createdAt;
-            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
-            timeInfo.style.display = "";
-            timeInfo.classList.add("ok");
-          }
-        } else if (data?.created_at && data?.completed_at) {
-          const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
-          const completedAt = typeof data.completed_at === "number" ? data.completed_at : parseInt(String(data.completed_at), 10);
-          if (!isNaN(createdAt) && !isNaN(completedAt) && completedAt >= createdAt) {
-            const durationSeconds = completedAt - createdAt;
-            timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
-            timeInfo.style.display = "";
-            timeInfo.classList.add("ok");
+        } else {
+          // 其他 provider 使用 submit_time 和 end_time
+          const submitTime = data?.submit_time;
+          const endTime = data?.end_time;
+
+          if (submitTime && endTime) {
+            const durationSeconds = calculateDuration(submitTime, endTime);
+            if (durationSeconds !== null) {
+              timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+              timeInfo.style.display = "";
+              timeInfo.classList.add("ok");
+            }
+          } else if (data?.created_at && data?.updated_at) {
+            const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
+            const updatedAt = typeof data.updated_at === "number" ? data.updated_at : parseInt(String(data.updated_at), 10);
+            if (!isNaN(createdAt) && !isNaN(updatedAt) && updatedAt >= createdAt) {
+              const durationSeconds = updatedAt - createdAt;
+              timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+              timeInfo.style.display = "";
+              timeInfo.classList.add("ok");
+            }
+          } else if (data?.created_at && data?.completed_at) {
+            const createdAt = typeof data.created_at === "number" ? data.created_at : parseInt(String(data.created_at), 10);
+            const completedAt = typeof data.completed_at === "number" ? data.completed_at : parseInt(String(data.completed_at), 10);
+            if (!isNaN(createdAt) && !isNaN(completedAt) && completedAt >= createdAt) {
+              const durationSeconds = completedAt - createdAt;
+              timeInfo.textContent = `⏱️ ${formatDuration(durationSeconds)}`;
+              timeInfo.style.display = "";
+              timeInfo.classList.add("ok");
+            }
           }
         }
       }
@@ -922,6 +1066,31 @@ _HTML = """<!doctype html>
           $("sora_input_reference").value = "";
           renderSelectedFiles();
         });
+
+        renderFileChips("veo_first_frame_list", state.veoFirstFrame ? [state.veoFirstFrame] : [], () => {
+          state.veoFirstFrame = null;
+          state.veoLastFrame = null;
+          $("veo_first_frame").value = "";
+          $("veo_last_frame").value = "";
+          renderSelectedFiles();
+          updateVeoConstraints();
+          updateVeoInputsAvailability();
+        });
+
+        renderFileChips("veo_last_frame_list", state.veoLastFrame ? [state.veoLastFrame] : [], () => {
+          state.veoLastFrame = null;
+          $("veo_last_frame").value = "";
+          renderSelectedFiles();
+          updateVeoConstraints();
+          updateVeoInputsAvailability();
+        });
+
+        renderFileChips("veo_reference_images_list", state.veoReferenceImages, (idx) => {
+          state.veoReferenceImages.splice(idx, 1);
+          renderSelectedFiles();
+          updateVeoConstraints();
+          updateVeoInputsAvailability();
+        });
       }
 
       function updateSoraSizeOptions() {
@@ -943,6 +1112,98 @@ _HTML = """<!doctype html>
         if (!allowed.has(sizeEl.value)) {
           const firstAllowed = options.find((opt) => allowed.has(opt.value));
           if (firstAllowed) sizeEl.value = firstAllowed.value;
+        }
+      }
+
+      function updateVeoConstraints() {
+        const durationEl = $("veo_duration_seconds");
+        const aspectEl = $("veo_aspect_ratio");
+        const resolutionEl = $("veo_resolution");
+        if (!durationEl || !aspectEl || !resolutionEl) return;
+
+        const usesReferenceImages = (state.veoReferenceImages || []).length > 0;
+        const usesInterpolation = !!state.veoLastFrame;
+        const resolution = String(resolutionEl.value || "").trim().toLowerCase();
+
+        // Veo 3.1 最新规则（2025）：
+        // - reference_images: 仅支持 16:9，且 duration 必须 8
+        // - 1080p 和 4k: duration 必须 8
+        // - interpolation（首尾帧）: 不强制要求 8 秒（除非使用高分辨率）
+        const forceDuration8 = usesReferenceImages || resolution === "1080p" || resolution === "4k";
+
+        const durationOptions = Array.from(durationEl.options || []);
+        durationOptions.forEach((opt) => {
+          const ok = !forceDuration8 || opt.value === "8";
+          opt.disabled = !ok;
+          opt.hidden = !ok;
+        });
+        if (forceDuration8) durationEl.value = "8";
+
+        const aspectOptions = Array.from(aspectEl.options || []);
+        aspectOptions.forEach((opt) => {
+          const ok = !usesReferenceImages || opt.value === "16:9";
+          opt.disabled = !ok;
+          opt.hidden = !ok;
+        });
+        if (usesReferenceImages) aspectEl.value = "16:9";
+      }
+
+      // 更新 Veo 输入框的可用状态（首帧/尾帧 与 参考图片 互斥）
+      function updateVeoInputsAvailability() {
+        const firstFrameBtn = document.querySelector('label[for="veo_first_frame"]');
+        const lastFrameBtn = $("veo_last_frame_btn");
+        const refImagesBtn = document.querySelector('label[for="veo_reference_images"]');
+        const firstFrameInput = $("veo_first_frame");
+        const lastFrameInput = $("veo_last_frame");
+        const refImagesInput = $("veo_reference_images");
+
+        const hasFirstOrLast = !!(state.veoFirstFrame || state.veoLastFrame);
+        const hasRefImages = (state.veoReferenceImages || []).length > 0;
+
+        // 如果有首帧或尾帧，禁用参考图片
+        if (hasFirstOrLast) {
+          if (refImagesBtn) {
+            refImagesBtn.style.opacity = "0.5";
+            refImagesBtn.style.cursor = "not-allowed";
+            refImagesBtn.style.pointerEvents = "none";
+          }
+          if (refImagesInput) refImagesInput.disabled = true;
+        } else {
+          if (refImagesBtn) {
+            refImagesBtn.style.opacity = "";
+            refImagesBtn.style.cursor = "";
+            refImagesBtn.style.pointerEvents = "";
+          }
+          if (refImagesInput) refImagesInput.disabled = false;
+        }
+
+        // 如果有参考图片，禁用首帧和尾帧
+        if (hasRefImages) {
+          if (firstFrameBtn) {
+            firstFrameBtn.style.opacity = "0.5";
+            firstFrameBtn.style.cursor = "not-allowed";
+            firstFrameBtn.style.pointerEvents = "none";
+          }
+          if (lastFrameBtn) {
+            lastFrameBtn.style.opacity = "0.5";
+            lastFrameBtn.style.cursor = "not-allowed";
+            lastFrameBtn.style.pointerEvents = "none";
+          }
+          if (firstFrameInput) firstFrameInput.disabled = true;
+          if (lastFrameInput) lastFrameInput.disabled = true;
+        } else {
+          if (firstFrameBtn) {
+            firstFrameBtn.style.opacity = "";
+            firstFrameBtn.style.cursor = "";
+            firstFrameBtn.style.pointerEvents = "";
+          }
+          if (lastFrameBtn) {
+            lastFrameBtn.style.opacity = state.veoFirstFrame ? "" : "0.5";
+            lastFrameBtn.style.cursor = state.veoFirstFrame ? "" : "not-allowed";
+            lastFrameBtn.style.pointerEvents = "";
+          }
+          if (firstFrameInput) firstFrameInput.disabled = false;
+          if (lastFrameInput) lastFrameInput.disabled = false;
         }
       }
 
@@ -990,6 +1251,16 @@ _HTML = """<!doctype html>
           if (raw === "cancelled" || raw === "canceled") return "CANCELED";
           return "UNKNOWN";
         }
+        if (key === "veo") {
+          const raw = String(data?.status || "").toLowerCase();
+          if (raw === "running") return "RUNNING";
+          if (raw === "succeeded") return "SUCCEEDED";
+          if (raw === "failed") return "FAILED";
+          if (raw === "cancelled" || raw === "canceled") return "CANCELED";
+          if (raw === "unknown") return "UNKNOWN";
+          if (data?.done === false) return "RUNNING";
+          return "UNKNOWN";
+        }
 
         return data?.task_status || "UNKNOWN";
       }
@@ -1031,7 +1302,7 @@ _HTML = """<!doctype html>
         let videoUrl = "";
         if (key === "seedance") {
           videoUrl = data?.s3_video_url ?? data?.content?.video_url ?? "";
-        } else if (key === "sora") {
+        } else if (key === "sora" || key === "veo") {
           videoUrl = data?.s3_video_url ?? "";
         } else {
           videoUrl = data?.s3_video_url ?? data?.video_url ?? "";
@@ -1066,6 +1337,12 @@ _HTML = """<!doctype html>
         $("task_id").value = taskId || "";
         const initStatus = getTaskStatus(key, payload?.data);
         setBadge(initStatus === "UNKNOWN" ? "PENDING" : initStatus);
+
+        // 显示创建任务时的价格信息（Veo）
+        if (key === "veo" && payload?.data) {
+          updateCostAndTimeInfo(payload.data, key);
+        }
+
         if (taskId) schedulePoll(taskId, providerKey);
         goToTaskSection();
         return taskId;
@@ -1173,6 +1450,95 @@ _HTML = """<!doctype html>
       });
       $("sora_model").addEventListener("change", () => {
         updateSoraSizeOptions();
+      });
+
+      // Veo
+      $("veo_first_frame").addEventListener("change", () => {
+        const file = $("veo_first_frame").files?.[0] || null;
+        state.veoFirstFrame = file;
+        state.veoLastFrame = null;
+        $("veo_first_frame").value = "";
+        $("veo_last_frame").value = "";
+
+        // 如果选择了首帧，清空参考图片
+        if (file) {
+          state.veoReferenceImages = [];
+        }
+
+        renderSelectedFiles();
+        updateVeoConstraints();
+        updateVeoInputsAvailability();
+      });
+
+      // 未选择首帧时，阻止打开尾帧选择器
+      $("veo_last_frame_btn").addEventListener("click", (e) => {
+        if (state.veoFirstFrame) return;
+        e.preventDefault();
+        e.stopPropagation();
+        alert("请先选择首帧图片");
+      });
+      $("veo_last_frame").addEventListener("click", (e) => {
+        if (state.veoFirstFrame) return;
+        e.preventDefault();
+        e.stopPropagation();
+        alert("请先选择首帧图片");
+      });
+
+      $("veo_last_frame").addEventListener("change", () => {
+        const file = $("veo_last_frame").files?.[0] || null;
+        $("veo_last_frame").value = "";
+        if (!file) return;
+        if (!state.veoFirstFrame) {
+          state.veoLastFrame = null;
+          renderSelectedFiles();
+          alert("请先选择首帧图片");
+          return;
+        }
+
+        // 如果选择了尾帧，清空参考图片
+        state.veoReferenceImages = [];
+        state.veoLastFrame = file;
+
+        renderSelectedFiles();
+        updateVeoConstraints();
+        updateVeoInputsAvailability();
+      });
+
+      $("veo_reference_images").addEventListener("change", () => {
+        const picked = Array.from($("veo_reference_images").files || []);
+        $("veo_reference_images").value = "";
+        if (picked.length === 0) return;
+
+        // 如果选择了参考图片，清空首帧和尾帧
+        if (picked.length > 0) {
+          state.veoFirstFrame = null;
+          state.veoLastFrame = null;
+        }
+
+        const existing = new Set(state.veoReferenceImages.map(fileKey));
+        const slots = Math.max(0, 3 - state.veoReferenceImages.length);
+        const uniquePicked = picked.filter((f) => !existing.has(fileKey(f)));
+
+        if (slots === 0) {
+          alert("Veo: 最多 3 张参考图片");
+          return;
+        }
+
+        const toAdd = uniquePicked.slice(0, slots);
+        state.veoReferenceImages.push(...toAdd);
+        renderSelectedFiles();
+        updateVeoConstraints();
+        updateVeoInputsAvailability();
+
+        const ignored = uniquePicked.length - toAdd.length;
+        if (ignored > 0) alert(`Veo: 最多 3 张参考图片，已忽略 ${ignored} 张`);
+      });
+
+      $("veo_resolution").addEventListener("change", () => {
+        updateVeoConstraints();
+      });
+      $("veo_aspect_ratio").addEventListener("change", () => {
+        updateVeoConstraints();
       });
 
       // T2V
@@ -1305,6 +1671,51 @@ _HTML = """<!doctype html>
         catch (e) { alert(e.message); }
       });
 
+      // Veo
+      $("veo_submit").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const prompt = $("veo_prompt").value.trim();
+        if (!prompt) return alert("Veo: prompt 必填");
+
+        const firstFrame = state.veoFirstFrame;
+        const lastFrame = state.veoLastFrame;
+        if (lastFrame && !firstFrame) return alert("Veo: 选择尾帧时必须同时选择首帧");
+        if (state.veoReferenceImages.length > 3) return alert("Veo: reference_images 最多 3 张");
+
+        updateVeoConstraints();
+
+        const form = new FormData();
+        appendIf(form, "model", $("veo_model").value);
+        form.append("prompt", prompt);
+        appendIf(form, "negative_prompt", $("veo_negative_prompt").value);
+        appendIf(form, "aspect_ratio", $("veo_aspect_ratio").value);
+        appendIf(form, "resolution", $("veo_resolution").value);
+        appendIf(form, "duration_seconds", $("veo_duration_seconds").value);
+        appendIf(form, "person_generation", $("veo_person_generation").value);
+        if (firstFrame) form.append("first_frame", firstFrame);
+        if (lastFrame) form.append("last_frame", lastFrame);
+        state.veoReferenceImages.forEach((f) => form.append("reference_images", f));
+
+        try { await createTask("/api/v1/veo/task", form, "veo"); }
+        catch (e) { alert(e.message); }
+      });
+
+      $("veo_extend_submit").addEventListener("click", async (e) => {
+        e.preventDefault();
+        const sourceOp = $("veo_extend_operation_name").value.trim();
+        if (!sourceOp) return alert("Veo Extend: operation_name 必填");
+        const prompt = $("veo_extend_prompt").value.trim();
+        if (!prompt) return alert("Veo Extend: prompt 必填");
+
+        const form = new FormData();
+        appendIf(form, "model", $("veo_extend_model").value);
+        form.append("prompt", prompt);
+        appendIf(form, "negative_prompt", $("veo_extend_negative_prompt").value);
+
+        try { await createTask(`/api/v1/veo/task/${encodeURIComponent(sourceOp)}/extend`, form, "veo"); }
+        catch (e) { alert(e.message); }
+      });
+
       // Query
       $("query_submit").addEventListener("click", async (e) => {
         e.preventDefault();
@@ -1337,6 +1748,8 @@ _HTML = """<!doctype html>
       initProviderSwitcher();
       renderSelectedFiles();
       updateSoraSizeOptions();
+      updateVeoConstraints();
+      updateVeoInputsAvailability();
     </script>
   </body>
 </html>

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.api.endpoints import video_generation, task_query, ui, seedance_task, sora_video
+from app.api.endpoints import video_generation, task_query, ui, seedance_task, sora_video, veo_task
 from app.utils.exceptions import VideoCreatorException
 from app.db import init_db
 
@@ -48,6 +48,7 @@ app.include_router(video_generation.router)
 app.include_router(task_query.router)
 app.include_router(seedance_task.router)
 app.include_router(sora_video.router)
+app.include_router(veo_task.router)
 app.include_router(ui.router)
 
 

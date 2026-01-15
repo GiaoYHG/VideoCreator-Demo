@@ -67,3 +67,30 @@ def create_video_task(
 
     finally:
         session.close()
+
+
+def get_video_task_by_id(task_id: str) -> Optional[VideoTask]:
+    """
+    根据任务ID获取视频任务记录
+
+    Args:
+        task_id: 任务ID
+
+    Returns:
+        VideoTask: 任务对象，如果不存在返回None
+    """
+    session = get_session()
+    try:
+        task = session.query(VideoTask).filter(VideoTask.task_id == task_id).first()
+        if task and task.request_data:
+            # 将JSON字符串转换回字典
+            try:
+                task.request_data = json.loads(task.request_data)
+            except (json.JSONDecodeError, TypeError):
+                pass
+        return task
+    except Exception as e:
+        print(f"❌ Failed to get task {task_id}: {str(e)}")
+        return None
+    finally:
+        session.close()
