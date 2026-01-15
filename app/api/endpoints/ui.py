@@ -658,7 +658,7 @@ _HTML = """<!doctype html>
               <h2>Veo Extend</h2>
               <small>POST <span class="mono">/api/v1/veo/task/{operation_name}/extend</span></small>
               <label>Source Operation Name（必填）</label>
-              <input id="veo_extend_operation_name" class="mono" placeholder="复制上一次 Veo 的 task_id（通常以 operations/ 开头）" />
+              <input id="veo_extend_operation_name" class="mono" placeholder="复制上一次 Veo 的 task_id（通常以 models/veo-3.1……开头）" />
               <div class="row">
                 <div>
                   <label>Model</label>
